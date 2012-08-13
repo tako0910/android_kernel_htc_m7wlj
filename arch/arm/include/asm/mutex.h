@@ -10,5 +10,9 @@
 #include <asm-generic/mutex-xchg.h>
 #else
 #include <asm-generic/mutex-dec.h>
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> ae31873... ARM: mutex: use generic atomic_dec-based implementation for ARMv6+
 #endif
 #endif	/* _ASM_MUTEX_H */
