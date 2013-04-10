@@ -60,6 +60,9 @@
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
 #endif  
 
+static void m7wl_display_on(struct msm_fb_data_type *mfd);
+static void m7wl_display_off(struct msm_fb_data_type *mfd);
+
 static struct resource msm_fb_resources[] = {
 	{
 		.flags = IORESOURCE_DMA,
@@ -525,7 +528,7 @@ int m7wl_mdp_gamma(void)
 	if (mdp_gamma == NULL)
 		return 0;
 
-	mdp_color_enhancement(mdp_gamma, mdp_gamma_count);
+	// mdp_color_enhancement(mdp_gamma, mdp_gamma_count);
 	return 0;
 }
 
@@ -781,9 +784,9 @@ static int set_cabc_Video_cmds_count = 0;
 static unsigned int pwm_min = 6;
 static unsigned int pwm_default = 81 ;
 static unsigned int pwm_max = 255;
-static atomic_t lcd_backlight_off;
+// static atomic_t lcd_backlight_off;
 
-#define CABC_DIMMING_SWITCH
+// #define CABC_DIMMING_SWITCH
 
 static char enter_sleep[2] = {0x10, 0x00}; 
 static char exit_sleep[2] = {0x11, 0x00}; 
@@ -1379,6 +1382,8 @@ static int m7wl_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+	m7wl_display_on(mfd);
+
 	mipi  = &mfd->panel_info.mipi;
 	if (!first_init) {
 		if (mipi->mode == DSI_VIDEO_MODE) {
@@ -1412,6 +1417,8 @@ static int m7wl_lcd_off(struct platform_device *pdev)
 		return -EINVAL;
 
 	resume_blk = 1;
+
+	m7wl_display_off(mfd);
 
 	PR_DISP_INFO("%s\n", __func__);
 	return 0;
@@ -1551,9 +1558,9 @@ static void m7wl_set_backlight(struct msm_fb_data_type *mfd)
 #endif
 	int rc;
 
-	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
-		return;
-	}
+//	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
+//		return;
+//	}
 
 	if ((panel_type == PANEL_ID_M7_JDI_SAMSUNG) ||
 		(panel_type == PANEL_ID_M7_JDI_SAMSUNG_C2) ||
@@ -2039,16 +2046,14 @@ static struct msm_fb_panel_data m7wl_panel_data = {
 	.on	= m7wl_lcd_on,
 	.off	= m7wl_lcd_off,
 	.set_backlight = m7wl_set_backlight,
-	.display_on = m7wl_display_on,
-	.display_off = m7wl_display_off,
-	.color_enhance = m7wl_color_enhance,
+//	.color_enhance = m7wl_color_enhance,
 #ifdef CABC_DIMMING_SWITCH
-	.dimming_on = m7wl_dim_on,
+//	.dimming_on = m7wl_dim_on,
 #endif
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 	.set_cabc = m7wl_set_cabc,
 #endif
-	.sre_ctrl = m7wl_sre_ctrl,
+//	.sre_ctrl = m7wl_sre_ctrl,
 };
 
 static struct msm_panel_info pinfo;
@@ -2131,9 +2136,9 @@ static int __init mipi_cmd_jdi_renesas_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.width = 58;
-	pinfo.height = 103;
-	pinfo.camera_backlight = 183;
+//	pinfo.width = 58;
+//	pinfo.height = 103;
+//	pinfo.camera_backlight = 183;
 
 	pinfo.lcdc.h_back_porch = 27;
 	pinfo.lcdc.h_front_porch = 38;
@@ -2231,9 +2236,9 @@ static int __init mipi_cmd_sharp_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-        pinfo.width = 58;
-        pinfo.height = 103;
-	pinfo.camera_backlight = 183;
+//        pinfo.width = 58;
+//        pinfo.height = 103;
+//	pinfo.camera_backlight = 183;
 
 	pinfo.lcdc.h_back_porch = 27;
 	pinfo.lcdc.h_front_porch = 38;
@@ -2517,9 +2522,9 @@ static int __init mipi_command_samsung_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-        pinfo.width = 58;
-        pinfo.height = 103;
-	pinfo.camera_backlight = 183;
+//        pinfo.width = 58;
+//        pinfo.height = 103;
+//	pinfo.camera_backlight = 183;
 
 	pinfo.lcdc.h_back_porch = 27;
 	pinfo.lcdc.h_front_porch = 38;
@@ -2569,7 +2574,7 @@ static int __init mipi_command_samsung_init(void)
 
 	pinfo.mipi.frame_rate = 60;
 	
-	pinfo.lcdc.no_set_tear = 1;
+//	pinfo.lcdc.no_set_tear = 1;
 
 	pinfo.mipi.dsi_phy_db = &dsi_jdi_cmd_mode_phy_db;
 
