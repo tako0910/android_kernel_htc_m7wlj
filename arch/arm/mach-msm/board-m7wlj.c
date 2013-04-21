@@ -6139,6 +6139,80 @@ static void __init m7wlj_smb349_mpp_init(void)
 extern void (*cam_vcm_on_cb)(void);
 extern void (*cam_vcm_off_cb)(void);
 
+#if 0
+static struct gpio_keys_button m7_gpio_keys[] = {
+	{
+		.code = KEY_POWER,
+		.gpio = PWR_KEY_MSMz,
+		.active_low = 1,
+		.desc = "power",
+		.type = EV_KEY,
+		.wakeup = 1,
+		.debounce_interval = 10,
+		.can_disable = 0,
+		.value = 0,
+	},
+	{
+		.code = KEY_VOLUMEUP,
+		.gpio = VOL_UPz,
+		.active_low = 1,
+		.desc = "volume up",
+		.type = EV_KEY,
+		.wakeup = 1,
+		.debounce_interval = 10,
+		.can_disable = 0,
+		.value = 0,
+	},
+	{
+		.code = KEY_VOLUMEDOWN,
+		.gpio = VOL_DOWNz,
+		.active_low = 1,
+		.desc = "volume down",
+		.type = EV_KEY,
+		.wakeup = 1,
+		.debounce_interval = 10,
+		.can_disable = 0,
+		.value = 0,
+	},
+};
+
+static struct gpio_keys_platform_data m7_gpio_keys_platform_data = {
+	.buttons	= m7_gpio_keys,
+	.nbuttons	= ARRAY_SIZE(m7_gpio_keys),
+};
+
+static struct platform_device m7_gpio_keys_device = {
+	.name   = "gpio-keys",
+	.id     = 0,
+	.dev    = {
+		.platform_data  = &m7_gpio_keys_platform_data,
+	},
+};
+
+static uint32_t matirx_inputs_gpio_table[] = {
+	GPIO_CFG(PWR_KEY_MSMz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_DOWNz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_UPz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+};
+
+int __init m7_init_gpio_keys(void){
+	int i = 0;
+
+	pr_info("Registering gpio keys\n");
+
+
+	for (i = 0; i < ARRAY_SIZE(matirx_inputs_gpio_table); i++)
+		gpio_tlmm_config(matirx_inputs_gpio_table[i], GPIO_CFG_ENABLE);
+
+	platform_device_register(&m7_gpio_keys_device);
+
+	return 0;
+}
+#endif
+
 static void __init m7wlj_common_init(void)
 {
 	int rc = 0;
@@ -6266,6 +6340,7 @@ static void __init m7wlj_common_init(void)
 	m7wlj_receiver_init();
 	headset_device_register();
 	m7wl_init_keypad();
+//	m7wlj_init_gpio_keys();
 
 #ifdef CONFIG_VIDEO_NMI
         m7wlj_init_1seg();
