@@ -117,7 +117,6 @@ static int __init m7wl_audio_init(void)
 {
         int ret = 0;
 
-	gpio_free(RCV_PAMP_GPIO);
 	htc_register_q6asm_ops(&qops);
 	htc_register_pcm_routing_ops(&rops);
 	htc_register_compr_q6_ops(&cops);
