@@ -2660,6 +2660,7 @@ config MACH_MONARUDO
 config MACH_M7_WLJ
         depends on ARCH_APQ8064
         bool "APQ8064 M7_WLJ"
+        select FB_MSM_MIPI_DSI
         help
           Support for the HTC APQ8064 M7_WLJ.
 
