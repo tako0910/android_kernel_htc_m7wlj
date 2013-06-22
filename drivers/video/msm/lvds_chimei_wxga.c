@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -63,15 +63,16 @@ static int __devinit lvds_chimei_probe(struct platform_device *pdev)
 {
 	int rc = 0;
 
-	if (pdev->id == 0)
+	if (pdev->id == 0) {
 		cm_pdata = pdev->dev.platform_data;
-
-	if (cm_pdata == NULL) {
-		pr_err("%s: no PWM gpio specified\n", __func__);
+		if (cm_pdata == NULL)
+			pr_err("%s: no PWM gpio specified\n", __func__);
 		return 0;
-	} else
+	}
+
+	if (cm_pdata != NULL)
 		bl_lpm = pwm_request(cm_pdata->gpio[0],
-				"backlight");
+			"backlight");
 
 	if (bl_lpm == NULL || IS_ERR(bl_lpm)) {
 		pr_err("%s pwm_request() failed\n", __func__);
@@ -133,10 +134,14 @@ static int __init lvds_chimei_wxga_init(void)
 	pinfo->wait_cycle = 0;
 	pinfo->bpp = 24;
 	pinfo->fb_num = 2;
-	pinfo->clk_rate = 75000000;
+	pinfo->clk_rate = 79400000;
 	pinfo->bl_max = 255;
 	pinfo->bl_min = 1;
 
+	/*
+	 * this panel is operated by de,
+	 * vsycn and hsync are ignored
+	 */
 	pinfo->lcdc.h_back_porch = 0;
 	pinfo->lcdc.h_front_porch = 194;
 	pinfo->lcdc.h_pulse_width = 40;
@@ -147,7 +152,7 @@ static int __init lvds_chimei_wxga_init(void)
 	pinfo->lcdc.hsync_skew = 0;
 	pinfo->lvds.channel_mode = LVDS_SINGLE_CHANNEL_MODE;
 
-	
+	/* Set border color, padding only for reducing active display region */
 	pinfo->lcdc.border_clr = 0x0;
 	pinfo->lcdc.xres_pad = 0;
 	pinfo->lcdc.yres_pad = 0;

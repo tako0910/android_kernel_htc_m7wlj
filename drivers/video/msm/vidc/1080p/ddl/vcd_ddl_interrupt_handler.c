@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -274,8 +274,8 @@ static u32 ddl_decoder_seq_done_callback(struct ddl_context *ddl_context,
 		}
 		vidc_sm_get_profile_info(&ddl->shared_mem
 			[ddl->command_channel], &disp_profile_info);
-		disp_profile_info.pic_profile = seq_hdr_info.profile;
-		disp_profile_info.pic_level = seq_hdr_info.level;
+		seq_hdr_info.profile = disp_profile_info.pic_profile;
+		seq_hdr_info.level = disp_profile_info.pic_level;
 		ddl_get_dec_profile_level(decoder, seq_hdr_info.profile,
 			seq_hdr_info.level);
 		switch (decoder->codec.codec) {
@@ -340,7 +340,7 @@ static u32 ddl_decoder_seq_done_callback(struct ddl_context *ddl_context,
 		parse_hdr_crop_data(ddl, &seq_hdr_info);
 		if (decoder->codec.codec == VCD_CODEC_H264 &&
 			seq_hdr_info.level > VIDC_1080P_H264_LEVEL4) {
-			DDL_MSG_HIGH("Warning: H264 LEVEL(%d) > LEVEL4",
+			DDL_MSG_ERROR("WARNING: H264MaxLevelExceeded : %d",
 				seq_hdr_info.level);
 		}
 		ddl_set_default_decoder_buffer_req(decoder, false);
@@ -1258,6 +1258,9 @@ static u32 ddl_decoder_output_done_callback(
 				output_vcd_frm->flags |=
 					VCD_FRAME_FLAG_DATACORRUPT;
 		}
+		if (decoder->codec.codec != VCD_CODEC_H264 &&
+			decoder->codec.codec != VCD_CODEC_MPEG2)
+			output_vcd_frm->flags &= ~VCD_FRAME_FLAG_DATACORRUPT;
 		output_vcd_frm->ip_frm_tag = dec_disp_info->tag_top;
 		vidc_sm_get_picture_times(&ddl->shared_mem
 			[ddl->command_channel],

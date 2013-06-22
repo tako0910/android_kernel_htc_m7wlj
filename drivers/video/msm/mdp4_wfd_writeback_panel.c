@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -37,14 +37,13 @@ static int __devinit writeback_panel_probe(struct platform_device *pdev)
 static struct msm_fb_panel_data writeback_msm_panel_data = {
 	.panel_info = {
 		.type = WRITEBACK_PANEL,
-		.xres = 1920,
-		.yres = 1920,
+		.xres = 1280,
+		.yres = 720,
 		.pdest = DISPLAY_3,
 		.wait_cycle = 0,
 		.bpp = 24,
 		.fb_num = 1,
-		
-		.clk_rate = 177780000,
+		.clk_rate = 74250000,
 	},
 };
 
@@ -81,4 +80,4 @@ fail_driver_registration:
 	return rc;
 }
 
-late_initcall(writeback_panel_init);
+module_init(writeback_panel_init);
