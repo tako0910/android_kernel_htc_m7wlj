@@ -784,9 +784,9 @@ static int set_cabc_Video_cmds_count = 0;
 static unsigned int pwm_min = 6;
 static unsigned int pwm_default = 81 ;
 static unsigned int pwm_max = 255;
-// static atomic_t lcd_backlight_off;
+static atomic_t lcd_backlight_off;
 
-// #define CABC_DIMMING_SWITCH
+#define CABC_DIMMING_SWITCH
 
 static char enter_sleep[2] = {0x10, 0x00}; 
 static char exit_sleep[2] = {0x11, 0x00}; 
@@ -2337,9 +2337,9 @@ static int __init mipi_video_sharp_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.width = 61;
-	pinfo.height = 110;
-	pinfo.camera_backlight = 176;
+//	pinfo.width = 61;
+//	pinfo.height = 110;
+//	pinfo.camera_backlight = 176;
 
 	pinfo.lcdc.h_back_porch = 58;
 	pinfo.lcdc.h_front_porch = 100;
@@ -2434,9 +2434,9 @@ static int __init mipi_video_sony_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.width = 61;
-	pinfo.height = 110;
-	pinfo.camera_backlight = 176;
+//	pinfo.width = 61;
+//	pinfo.height = 110;
+//	pinfo.camera_backlight = 176;
 
 	pinfo.lcdc.h_back_porch = 58;
 	pinfo.lcdc.h_front_porch = 100;
