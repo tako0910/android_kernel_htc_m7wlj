@@ -445,8 +445,8 @@ static void gpio_rev_init(void)
 extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 
 static struct platform_driver m7wl_rfkill_driver = {
-	.probe = m7_rfkill_probe,
-	.remove = m7_rfkill_remove,
+	.probe = m7wl_rfkill_probe,
+	.remove = m7wl_rfkill_remove,
 	.driver = {
 		.name = "m7wl_rfkill",
 		.owner = THIS_MODULE,
