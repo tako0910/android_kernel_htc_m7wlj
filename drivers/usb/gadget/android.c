@@ -84,7 +84,7 @@ static int os_type;
 
 #include <linux/usb/htc_info.h>
 #include "f_projector.c"
-#include "f_projector2.c"
+//#include "f_projector2.c"
 
 #ifdef CONFIG_PERFLOCK
 #include <mach/perflock.h>
@@ -1845,7 +1845,7 @@ struct android_usb_function projector_function = {
 	.bind_config	= projector_function_bind_config,
 	.attributes = projector_function_attributes
 };
-
+/*
 static int projector2_function_init(struct android_usb_function *f,
 		struct usb_composite_dev *cdev)
 {
@@ -1937,7 +1937,7 @@ struct android_usb_function projector2_function = {
 	.bind_config	= projector2_function_bind_config,
 	.attributes = projector2_function_attributes
 };
-
+*/
 
 static struct android_usb_function *supported_functions[] = {
 	&rndis_function,
@@ -1956,7 +1956,7 @@ static struct android_usb_function *supported_functions[] = {
 	&modem_function,
 	&serial_function,
 	&projector_function,
-	&projector2_function,
+//	&projector2_function,
 #ifdef CONFIG_USB_ANDROID_ACM
 	&acm_function,
 #endif
@@ -2502,8 +2502,8 @@ android_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *c)
 	if (value < 0)
 		value = projector_ctrlrequest(cdev, c);
 
-	if (value < 0)
-		value = projector2_ctrlrequest(cdev, c);
+//	if (value < 0)
+//		value = projector2_ctrlrequest(cdev, c);
 
 	if (value < 0)
 		value = composite_setup(gadget, c);
