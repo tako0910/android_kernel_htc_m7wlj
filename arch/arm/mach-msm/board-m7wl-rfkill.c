@@ -403,9 +403,9 @@ static int m7wl_rfkill_remove(struct platform_device *dev)
 	return 0;
 }
 
-static struct platform_driver m7_rfkill_driver = {
-	.probe = m7_rfkill_probe,
-	.remove = m7_rfkill_remove,
+static struct platform_driver m7wl_rfkill_driver = {
+	.probe = m7wl_rfkill_probe,
+	.remove = m7wl_rfkill_remove,
 	.driver = {
 		.name = "m7wl_rfkill",
 		.owner = THIS_MODULE,

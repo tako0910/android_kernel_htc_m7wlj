@@ -17,7 +17,7 @@
 #include <linux/platform_device.h>
 #include <mach/irqs.h>
 
-#include "board-m7.h"
+#include "board-m7wl.h"
 #include "devices.h"
 
 extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
@@ -50,7 +50,7 @@ static struct platform_device msm_bluesleep_device = {
 	.resource = bluesleep_resources,
 };
 
-static int __init m7_bluesleep_init(void)
+static int __init m7wl_bluesleep_init(void)
 {
 	int ret;
 
@@ -58,19 +58,19 @@ static int __init m7_bluesleep_init(void)
 	if (ret >= 0) {
 		bluesleep_setup_uart_port(&msm_device_uart_dm6);
 	} else {
-		printk(KERN_ERR "m7-bluesleep: error registering");
+		printk(KERN_ERR "m7wl-bluesleep: error registering");
 	}
 
 	return ret;
 }
 
-static void __exit m7_bluesleep_exit(void)
+static void __exit m7wl_bluesleep_exit(void)
 {
 	platform_device_unregister(&msm_bluesleep_device);
 }
 
-module_init(m7_bluesleep_init);
-module_exit(m7_bluesleep_exit);
-MODULE_DESCRIPTION("m7 Bluesleep driver");
+module_init(m7wl_bluesleep_init);
+module_exit(m7wl_bluesleep_exit);
+MODULE_DESCRIPTION("m7wl Bluesleep driver");
 MODULE_AUTHOR("CyanogenMod Project");
 MODULE_LICENSE("GPL");
