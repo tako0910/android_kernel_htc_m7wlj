@@ -85,6 +85,7 @@ struct htc_charger {
 	int (*is_batt_temp_fault_disable_chg)(int *result);
 	int (*charger_change_notifier_register)
 			(struct t_cable_status_notifier *notifier);
+	int (*max_input_current)(int target_ma);
 	int (*dump_all)(void);
 	int (*is_charging_enabled)(int *result);
 	int (*is_under_rating)(int *result);

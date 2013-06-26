@@ -3248,6 +3248,7 @@ int q6asm_set_volume(struct audio_client *ac, int volume)
 	if (!rc) {
 		pr_err("%s: timeout in sending volume command to apr\n",
 			__func__);
+		HTC_Q6_BUG();
 		rc = -EINVAL;
 		goto fail_cmd;
 	}

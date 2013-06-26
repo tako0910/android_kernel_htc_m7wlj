@@ -510,20 +510,10 @@ static ssize_t ram_console_read_old(struct file *file, char __user *buf,
 	static char *bldr_ptr;
 	static unsigned long bldr_size;
 
-	if(!get_tamper_sf())
-	{
-		last_bldr_ptr=last_bldr_log;
-		last_bldr_size=last_bldr_log_size;
-		bldr_ptr=bldr_log;
-		bldr_size=bldr_log_size;
-	}
-	else
-	{
-		last_bldr_ptr=last_bldr_log_buf;
-		last_bldr_size=last_bldr_log_buf_size;
-		bldr_ptr=bldr_log_buf;
-		bldr_size=bldr_log_buf_size;
-	}
+	last_bldr_ptr=last_bldr_log_buf;
+	last_bldr_size=last_bldr_log_buf_size;
+	bldr_ptr=bldr_log_buf;
+	bldr_size=bldr_log_buf_size;
 
 	if (pos >= last_bldr_size + ram_console_old_log_size + bldr_size)
 		return 0;
@@ -560,16 +550,8 @@ static ssize_t ram_console_read_old(struct file *file, char __user *buf,
 	static char *last_bldr_ptr;
 	static unsigned long last_bldr_size;
 
-	if(!get_tamper_sf())
-	{
-		last_bldr_ptr=last_bldr_log;
-		last_bldr_size=last_bldr_log_size;
-	}
-	else
-	{
-		last_bldr_ptr=last_bldr_log_buf;
-		last_bldr_size=last_bldr_log_buf_size;
-	}
+	last_bldr_ptr=last_bldr_log_buf;
+	last_bldr_size=last_bldr_log_buf_size;
 
 	if (pos >= last_bldr_size + ram_console_old_log_size)
 		return 0;
@@ -595,16 +577,8 @@ static ssize_t ram_console_read_old(struct file *file, char __user *buf,
 	static char *bldr_ptr;
 	static unsigned long bldr_size;
 
-	if(!get_tamper_sf())
-	{
-		bldr_ptr=bldr_log;
-		bldr_size=bldr_log_size;
-	}
-	else
-	{
-		bldr_ptr=bldr_log_buf;
-		bldr_size=bldr_log_buf_size;
-	}
+	bldr_ptr=bldr_log_buf;
+	bldr_size=bldr_log_buf_size;
 
 	if (pos >= ram_console_old_log_size + bldr_size)
 		return 0;
@@ -643,6 +617,79 @@ static const struct file_operations ram_console_file_ops = {
 	.owner = THIS_MODULE,
 	.read = ram_console_read_old,
 };
+
+#if defined(CONFIG_DEBUG_LAST_BLDR_LOG) || defined(CONFIG_DEBUG_BLDR_LOG)
+bool bldr_rst_msg_parser(char *bldr_log_buf, unsigned long bldr_log_buf_size, bool is_last_bldr)
+{
+	int i,j,k;
+	const char *ramdump_pattern_rst="ramdump_show_rst_msg:";
+	const char *ramdump_pattern_vib="### Vibrating for ramdump mode ###";
+	const char *ramdump_pattern_real="ramdump_real_rst_msg:";
+	int ramdump_pattern_rst_len=strlen(ramdump_pattern_rst);
+	int ramdump_pattern_vib_len=strlen(ramdump_pattern_vib);
+	int ramdump_pattern_real_len=strlen(ramdump_pattern_real);
+	char *bldr_ramdump_pattern_rst_buf_ptr = NULL;
+	bool is_ramdump_mode = false;
+	bool found_ramdump_pattern_rst = false;
+
+	for(i=0; i<bldr_log_buf_size; i++) 
+	{
+		bool ramdump_pattern_rst_match = true;
+		bool ramdump_pattern_vib_match = true;
+
+		if(!found_ramdump_pattern_rst &&
+			(i+ramdump_pattern_rst_len) <= bldr_log_buf_size)
+		{
+			for(j=0; j < ramdump_pattern_rst_len; j++) 
+			{
+				if(bldr_log_buf[i+j] != ramdump_pattern_rst[j])
+				{
+					ramdump_pattern_rst_match = false;
+					break;
+				}
+			}
+
+			if(ramdump_pattern_rst_match) 
+			{
+				if(is_last_bldr)
+					bldr_ramdump_pattern_rst_buf_ptr = bldr_log_buf+i;
+				else
+					memcpy(bldr_log_buf+i, ramdump_pattern_real, ramdump_pattern_real_len);
+				found_ramdump_pattern_rst = true;
+			}
+		}
+
+		if(!is_ramdump_mode &&
+			(i+ramdump_pattern_vib_len) <= bldr_log_buf_size &&
+			is_last_bldr)
+		{
+			for(k=0; k < ramdump_pattern_vib_len; k++) 
+			{
+				if(bldr_log_buf[i+k] != ramdump_pattern_vib[k])
+				{
+					ramdump_pattern_vib_match = false;
+					break;
+				}
+			}
+
+			if(ramdump_pattern_vib_match) 
+				is_ramdump_mode = true;
+		}
+
+		if(found_ramdump_pattern_rst &&
+			is_ramdump_mode &&
+			is_last_bldr)  
+		{
+			memcpy(bldr_ramdump_pattern_rst_buf_ptr, ramdump_pattern_real, ramdump_pattern_real_len);
+			break;
+		}
+	}
+
+	if(is_last_bldr)
+		return is_ramdump_mode;
+	else
+		return found_ramdump_pattern_rst;
+}
 
 void bldr_log_parser(char *bldr_log, char *bldr_log_buf, unsigned long bldr_log_size, unsigned long *bldr_log_buf_size)
 {
@@ -695,6 +742,12 @@ void bldr_log_parser(char *bldr_log, char *bldr_log_buf, unsigned long bldr_log_
 				memcpy(bldr_log_buf_ptr, terminal_pattern, terminal_pattern_len);
 				bldr_log_buf_ptr +=terminal_pattern_len;
 			}
+			else
+			{
+				
+				memcpy(bldr_log_buf_ptr, bldr_log_ptr, line_length);
+				bldr_log_buf_ptr +=line_length;
+			}
 
 			bldr_log_ptr+=line_length;
 			last_index=i+terminal_pattern_len;
@@ -704,10 +757,48 @@ void bldr_log_parser(char *bldr_log, char *bldr_log_buf, unsigned long bldr_log_
 	*bldr_log_buf_size = bldr_log_buf_ptr - bldr_log_buf;
 	printk(KERN_INFO "[K] bldr_log_parser: size %ld\n", *bldr_log_buf_size);
 }
+#endif
 
 static int __init ram_console_late_init(void)
 {
 	struct proc_dir_entry *entry;
+#if defined(CONFIG_DEBUG_LAST_BLDR_LOG) || defined(CONFIG_DEBUG_BLDR_LOG)
+	bool is_last_bldr_ramdump_mode = false;
+#endif
+
+#ifdef CONFIG_DEBUG_LAST_BLDR_LOG
+	if (last_bldr_log != NULL)
+	{
+		last_bldr_log_buf = kmalloc(last_bldr_log_size, GFP_KERNEL);
+		if (last_bldr_log_buf == NULL)
+			printk(KERN_ERR "[K] ram_console: failed to allocate buffer %ld for last bldr log\n", last_bldr_log_size);
+		else {
+			printk(KERN_INFO "[K] ram_console: allocate buffer %ld for last bldr log\n", last_bldr_log_size);
+			bldr_log_parser(last_bldr_log, last_bldr_log_buf, last_bldr_log_size, &last_bldr_log_buf_size);
+			is_last_bldr_ramdump_mode = bldr_rst_msg_parser(last_bldr_log_buf, last_bldr_log_buf_size, true);
+			if(is_last_bldr_ramdump_mode)
+				printk(KERN_INFO "[K] ram_console: Found abnormal rst_msg pattern in last bldr\n");
+		}
+	}
+#endif
+
+#ifdef CONFIG_DEBUG_BLDR_LOG
+	if (bldr_log != NULL)
+	{
+		bldr_log_buf = kmalloc(bldr_log_size, GFP_KERNEL);
+		if (bldr_log_buf == NULL)
+			printk(KERN_ERR "[K] ram_console: failed to allocate buffer %ld for bldr log\n", bldr_log_size);
+		else {
+			printk(KERN_INFO "[K] ram_console: allocate buffer %ld for bldr log\n", bldr_log_size);
+			bldr_log_parser(bldr_log, bldr_log_buf, bldr_log_size, &bldr_log_buf_size);
+			if(!is_last_bldr_ramdump_mode)
+			{
+				if(bldr_rst_msg_parser(bldr_log_buf, bldr_log_buf_size, false))
+					printk(KERN_INFO "[K] ram_console: Found abnormal rst_msg pattern in bldr\n");
+			}
+		}
+	}
+#endif
 
 #ifdef CONFIG_DEBUG_LAST_BLDR_LOG
 	if (last_bldr_log != NULL)
@@ -759,10 +850,10 @@ static int __init ram_console_late_init(void)
 	entry->proc_fops = &ram_console_file_ops;
 	entry->size = ram_console_old_log_size;
 #ifdef CONFIG_DEBUG_LAST_BLDR_LOG
-	entry->size += last_bldr_log_size;
+	entry->size += last_bldr_log_buf_size;
 #endif
 #ifdef CONFIG_DEBUG_BLDR_LOG
-	entry->size += bldr_log_size;
+	entry->size += bldr_log_buf_size;
 #endif
 	return 0;
 }

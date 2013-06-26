@@ -415,6 +415,11 @@ static int msmsdcc_bam_dml_reset_and_restore(struct msmsdcc_host *host)
 		goto out;
 	}
 
+	memset(host->sps.prod.config.desc.base, 0x00,
+			host->sps.prod.config.desc.size);
+	memset(host->sps.cons.config.desc.base, 0x00,
+			host->sps.cons.config.desc.size);
+
 	
 	rc = msmsdcc_sps_restore_ep(host, &host->sps.prod);
 	if (rc) {
@@ -548,15 +553,18 @@ static void msmsdcc_reset_and_restore(struct msmsdcc_host *host)
 		
 		u32	mci_clk = 0;
 		u32	mci_mask0 = 0;
+		u32	dll_config = 0;
 
 		
 		mci_clk = readl_relaxed(host->base + MMCICLOCK);
 		mci_mask0 = readl_relaxed(host->base + MMCIMASK0);
 		host->pwr = readl_relaxed(host->base + MMCIPOWER);
+		if (host->tuning_needed)
+			dll_config = readl_relaxed(host->base + MCI_DLL_CONFIG);
 		mb();
 
 		msmsdcc_hard_reset(host);
-		pr_info("%s: Controller has been reinitialized\n",
+		pr_info("%s: Applied hard reset to controller\n",
 				mmc_hostname(host->mmc));
 
 		
@@ -565,7 +573,12 @@ static void msmsdcc_reset_and_restore(struct msmsdcc_host *host)
 		writel_relaxed(mci_clk, host->base + MMCICLOCK);
 		msmsdcc_sync_reg_wr(host);
 		writel_relaxed(mci_mask0, host->base + MMCIMASK0);
+		if (host->tuning_needed)
+			writel_relaxed(dll_config, host->base + MCI_DLL_CONFIG);
 		mb(); 
+
+		if (is_sps_mode(host))
+			host->sps.reset_bam = true;
 	}
 
 	if (host->dummy_52_needed)
@@ -5009,7 +5022,7 @@ static void msmsdcc_req_tout_timer_hdlr(unsigned long data)
 
 	spin_lock_irqsave(&host->lock, flags);
 	if (host->dummy_52_sent) {
-		pr_info("%s: %s: dummy CMD52 timeout\n",
+		printk("%s: %s: dummy CMD52 timeout\n",
 				mmc_hostname(host->mmc), __func__);
 		host->dummy_52_sent = 0;
 	}
@@ -5017,7 +5030,7 @@ static void msmsdcc_req_tout_timer_hdlr(unsigned long data)
 	mrq = host->curr.mrq;
 
 	if (mrq && mrq->cmd) {
-		pr_info("%s: CMD%d: Request timeout\n", mmc_hostname(host->mmc),
+		printk("%s: CMD%d: Request timeout\n", mmc_hostname(host->mmc),
 				mrq->cmd->opcode);
 		msmsdcc_dump_sdcc_state(host);
 
@@ -5604,6 +5617,8 @@ msmsdcc_probe(struct platform_device *pdev)
 	if (is_mmc_platform(host->plat)) {
 		version = readl_relaxed(host->base + MCI_VERSION);
 		if (version == 0x06000018) {
+			
+			host->hw_caps &= ~MSMSDCC_SOFT_RESET;
 			pr_info("%s: hard_reset\n", mmc_hostname(host->mmc));
 			msmsdcc_hard_reset(host);
 			if (is_sps_mode(host))

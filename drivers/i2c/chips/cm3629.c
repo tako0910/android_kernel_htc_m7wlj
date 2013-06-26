@@ -49,7 +49,7 @@
 #define Max_open_value 50
 #ifdef POLLING_PROXIMITY
 #define POLLING_DELAY		200
-#define TH_ADD			10
+#define TH_ADD			5
 #endif
 static int record_init_fail = 0;
 static void sensor_irq_do_work(struct work_struct *work);
@@ -768,7 +768,9 @@ static void sensor_irq_do_work(struct work_struct *work)
 			report_psensor_input_event(lpi, 1);
 		else
 			report_psensor_input_event(lpi, 2);
-	} else if (((add & CM3629_ALS_IF_L) == CM3629_ALS_IF_L) ||
+	}
+
+	if (((add & CM3629_ALS_IF_L) == CM3629_ALS_IF_L) ||
 		     ((add & CM3629_ALS_IF_H) == CM3629_ALS_IF_H)) {
 		if (lpi->lightsensor_opened) {
 			inter_error = 0;
@@ -776,7 +778,9 @@ static void sensor_irq_do_work(struct work_struct *work)
 		} else {
 			lightsensor_disable(lpi);
 		}
-	} else {
+	}
+
+	if (!(add & 0x3F)) { 
 		if (inter_error < 10) {
 			D("[PS][cm3629 warning]%s unkown interrupt: 0x%x!\n",
 			__func__, add);
@@ -1005,7 +1009,7 @@ static int psensor_enable(struct cm3629_info *lpi)
 	psensor_initial_cmd(lpi);
 
 	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE &&
-			pocket_mode_flag != 1 && psensor_enable_by_touch != 1 && phone_status !=3) {
+			pocket_mode_flag != 1 && psensor_enable_by_touch != 1 && phone_status ==1) {
 		
 		D("[PS][cm3629] default report FAR ");
 		input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
@@ -1041,7 +1045,7 @@ static int psensor_enable(struct cm3629_info *lpi)
 		return ret;
 	}
 	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE &&
-		pocket_mode_flag != 1 && psensor_enable_by_touch != 1 && phone_status !=3) {
+		pocket_mode_flag != 1 && psensor_enable_by_touch != 1 && phone_status ==1) {
 
 			msleep(40);
 			ret = get_stable_ps_adc_value(&ps_adc1, &ps_adc2);
@@ -1057,8 +1061,7 @@ static int psensor_enable(struct cm3629_info *lpi)
 			}
 
 			D("[PS][cm3629] INITIAL ps_adc1 = 0x%02X\n", ps_adc1);
-			if (ret == 0 && lpi->mapping_table != NULL &&
-				ps_adc1 >= (lpi->original_ps_thd_set)/2) {
+			if (ret == 0 && lpi->mapping_table != NULL ){
 				queue_delayed_work(lpi->lp_wq, &polling_work,
 					msecs_to_jiffies(1));
 			}
@@ -1604,7 +1607,7 @@ static ssize_t ps_kadc_store(struct device *dev,
         char cmd[2];
 #endif
 	sscanf(buf, "0x%x 0x%x", &param1, &param2);
-	D("[PS]%s: store value = 0x%X, 0x%X\n", __func__, param1, param2);
+	D("[PS][cm3629]%s: store value = 0x%X, 0x%X\n", __func__, param1, param2);
 	ps_conf1_val = lpi->ps_conf1_val;
 	if (lpi->ps_calibration_rule == 3) {
 
@@ -2266,8 +2269,7 @@ static ssize_t phone_status_store(struct device *dev,
 		}
 
 		D("[PS][cm3629] INITIAL ps_adc1 = 0x%02X\n", ps_adc1);
-		if ((ret == 0) && (lpi->mapping_table != NULL) &&
-			((ps_adc1 >= (lpi->original_ps_thd_set)/2)))
+		if ((ret == 0) && (lpi->mapping_table != NULL))
 			queue_delayed_work(lpi->lp_wq, &polling_work,
 				msecs_to_jiffies(POLLING_DELAY));
 	}
@@ -2678,7 +2680,7 @@ static int cm3629_probe(struct i2c_client *client,
 	wake_lock_init(&(lpi->ps_wake_lock), WAKE_LOCK_SUSPEND, "proximity");
 
 	psensor_set_kvalue(lpi);
-
+	lpi->ps1_thd_set = lpi->ps1_thd_set + 50;
 	if (lpi->dynamical_threshold == 1)
 		lpi->original_ps_thd_set = lpi->ps1_thd_set;
 

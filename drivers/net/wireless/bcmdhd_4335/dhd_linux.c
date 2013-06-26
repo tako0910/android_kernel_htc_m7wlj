@@ -604,6 +604,8 @@ static int dhd_wl_host_event(dhd_info_t *dhd, int *ifidx, void *pktdata,
 #define WLC_HT_TKIP_RESTRICT    0x02     
 #define WLC_HT_WEP_RESTRICT     0x01    
 
+#define CUSTOM_AP_AMPDU_BA_WSIZE    32
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
 static int dhd_sleep_pm_callback(struct notifier_block *nfb, unsigned long action, void *ignored)
 {
@@ -1677,7 +1679,8 @@ dhd_op_if(dhd_if_t *ifp)
 			
 			msleep(300);
 			
-			unregister_netdev(ifp->net);
+			if (ifp->net->reg_state == NETREG_REGISTERED)
+				unregister_netdev(ifp->net);
 			ret = DHD_DEL_IF;	
 #ifdef WL_CFG80211
 			if (dhd->dhd_state & DHD_ATTACH_STATE_CFG80211) {
@@ -4394,6 +4397,9 @@ dhd_get_concurrent_capabilites(dhd_pub_t *dhd)
 	return 0;
 }
 #endif 
+
+extern unsigned int get_tamper_sf(void);
+
 int
 dhd_preinit_ioctls(dhd_pub_t *dhd)
 {
@@ -4568,6 +4574,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 
 	if ((!op_mode && strstr(fw_path, "_apsta") != NULL) ||
 		(op_mode == DHD_FLAG_HOSTAP_MODE)) {
+        ampdu_ba_wsize = CUSTOM_AP_AMPDU_BA_WSIZE;
 #ifdef SET_RANDOM_MAC_SOFTAP
 		uint rand_mac;
 #endif
@@ -4666,10 +4673,15 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #endif 
 	}
 
+	
+	if (get_tamper_sf() == 0)
 	DHD_ERROR(("Firmware up: op_mode=0x%04x, "
 		"Broadcom Dongle Host Driver mac="MACDBG"\n",
 		dhd->op_mode,
 		MAC2STRDBG(dhd->mac.octet)));
+	else
+	DHD_ERROR(("Firmware up: op_mode=0x%04x, Broadcom Dongle Host Driver\n",
+		dhd->op_mode));
 	
 	if (dhd->dhd_cspec.ccode[0] != 0) {
 		bcm_mkiovar("country", (char *)&dhd->dhd_cspec,

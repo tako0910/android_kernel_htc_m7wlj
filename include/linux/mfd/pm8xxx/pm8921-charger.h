@@ -211,6 +211,8 @@ int pm8921_dump_all(void);
 
 int pm8921_charger_get_attr_text(char *buf, int size);
 
+
+int pm8921_set_hsml_target_ma(int target_ma);
 int pm8921_charger_get_attr_text_with_ext_charger(char *buf, int size);
 
 int pm8921_gauge_get_attr_text(char *buf, int size);

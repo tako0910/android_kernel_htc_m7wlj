@@ -74,7 +74,7 @@ struct bma250_data *gdata;
 #ifdef CONFIG_CIR_ALWAYS_READY
 #define BMA250_ENABLE_INT1 1
 static int cir_flag = 0;
-extern int power_key_pressed;
+static int power_key_pressed = 0;
 #endif
 
 
@@ -1787,11 +1787,6 @@ static void bma250_set_enable(struct device *dev, int enable)
 
 	mutex_lock(&bma250->enable_mutex);
 	if (enable) {
-#ifdef CONFIG_CIR_ALWAYS_READY
-	
-	power_key_pressed = 0;
-	I("bma250_set_enable, power_key_pressed = %d\n", power_key_pressed);
-#endif
 		if (bma250->pdata->power_LPM)
 			bma250->pdata->power_LPM(0);
 
@@ -2835,8 +2830,33 @@ static ssize_t bma250_enable_interrupt(struct device *dev,
 
 	} 	return count;
 }
+static ssize_t bma250_clear_powerkey_pressed(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long powerkey_pressed;
+	int error;
+	error = strict_strtoul(buf, 10, &powerkey_pressed);
+	if (error)
+	    return error;
+
+	if(powerkey_pressed == 1) {
+	    power_key_pressed = 1;
+	}
+	else if(powerkey_pressed == 0) {
+	    power_key_pressed = 0;
+	}
+	return count;
+}
+static ssize_t bma250_get_powerkry_pressed(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", power_key_pressed);
+}
 static DEVICE_ATTR(enable_cir_interrupt, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
 		NULL, bma250_enable_interrupt);
+static DEVICE_ATTR(clear_powerkey_flag, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
+		bma250_get_powerkry_pressed, bma250_clear_powerkey_pressed);
 #endif
 
 static DEVICE_ATTR(range, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
@@ -3030,6 +3050,9 @@ static int bma250_probe(struct i2c_client *client,
 	struct input_dev *dev;
 #ifdef CONFIG_CIR_ALWAYS_READY
 	struct input_dev *dev_cir;
+	struct class *bma250_powerkey_class = NULL;
+	struct device *bma250_powerkey_dev = NULL;
+	int res;
 #endif
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
@@ -3168,6 +3191,26 @@ static int bma250_probe(struct i2c_client *client,
 #endif
 
 #ifdef HTC_ATTR
+
+
+#ifdef CONFIG_CIR_ALWAYS_READY
+	bma250_powerkey_class = class_create(THIS_MODULE, "bma250_powerkey");
+	if (IS_ERR(bma250_powerkey_class)) {
+		err = PTR_ERR(bma250_powerkey_class);
+		bma250_powerkey_class = NULL;
+		E("%s: could not allocate bma250_powerkey_class\n", __func__);
+		goto err_create_class;
+	}
+
+	bma250_powerkey_dev= device_create(bma250_powerkey_class,
+				NULL, 0, "%s", "bma250");
+	res = device_create_file(bma250_powerkey_dev, &dev_attr_clear_powerkey_flag);
+	if (res) {
+	        E("%s, create bma250_device_create_file fail!\n", __func__);
+		goto err_create_bma250_device_file;
+	}
+
+#endif
 	data->g_sensor_class = class_create(THIS_MODULE, "htc_g_sensor");
 	if (IS_ERR(data->g_sensor_class)) {
 		err = PTR_ERR(data->g_sensor_class);
@@ -3219,6 +3262,11 @@ error_sysfs:
 	device_unregister(data->g_sensor_dev);
 err_create_g_sensor_device:
 	class_destroy(data->g_sensor_class);
+#ifdef CONFIG_CIR_ALWAYS_READY
+	device_remove_file(bma250_powerkey_dev, &dev_attr_clear_powerkey_flag);
+err_create_bma250_device_file:
+	class_destroy(bma250_powerkey_class);
+#endif
 err_create_class:
 #ifdef CONFIG_CIR_ALWAYS_READY
 	input_unregister_device(data->input_cir);
@@ -3264,10 +3312,6 @@ static void bma250_late_resume(struct early_suspend *h)
 	D("%s++\n", __func__);
 
 	mutex_lock(&data->enable_mutex);
-#ifdef CONFIG_CIR_ALWAYS_READY
-	
-	power_key_pressed = 0;
-#endif
 	if (atomic_read(&data->enable) == 1) {
 		bma250_set_mode(data->bma250_client, BMA250_MODE_NORMAL);
 		schedule_delayed_work(&data->work,
@@ -3328,11 +3372,6 @@ static int bma250_resume(struct i2c_client *client)
 	D("%s++\n", __func__);
 
 	mutex_lock(&data->enable_mutex);
-#ifdef CONFIG_CIR_ALWAYS_READY
-	
-	power_key_pressed = 0;
-	I("bma250_resume, power_key_pressed = %d\n", power_key_pressed);
-#endif
 	if (atomic_read(&data->enable) == 1) {
 
 		bma250_set_mode(data->bma250_client, BMA250_MODE_NORMAL);

@@ -1,4 +1,4 @@
-/*  Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/*  Copyright (c) 2011-2013, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1152,7 +1152,7 @@ static int voice_send_set_device_cmd(struct voice_data *v)
 						APR_PKT_VER);
 	cvp_setdev_cmd.hdr.pkt_size = APR_PKT_SIZE(APR_HDR_SIZE,
 				sizeof(cvp_setdev_cmd) - APR_HDR_SIZE);
-	pr_debug("send create cvp setdev, pkt size = %d\n",
+	pr_debug("send create cvp_setdev_cmd, pkt size = %d\n",
 			cvp_setdev_cmd.hdr.pkt_size);
 	cvp_setdev_cmd.hdr.src_port = v->session_id;
 	cvp_setdev_cmd.hdr.dest_port = cvp_handle;
@@ -2176,13 +2176,16 @@ static int voice_setup_vocproc(struct voice_data *v)
 		HTC_Q6_BUG();
 		goto fail;
 	}
+
 	if (common.ec_ref_ext == true) {
 		ret = voice_send_set_device_cmd_v2(v);
-		if (ret < 0)
+		if (ret < 0) {
 			pr_err("%s:  set device V2 failed rc =%x\n",
-			       __func__, ret);
+				__func__, ret);
 			goto fail;
+		}
 	}
+
 	/* send cvs cal */
 	ret = voice_send_cvs_map_memory_cmd(v);
 	if (!ret)
@@ -3722,7 +3725,6 @@ fail:
 int voc_set_ext_ec_ref(uint16_t port_id, bool state)
 {
 	int ret = 0;
-
 	mutex_lock(&common.common_lock);
 	if (state == true) {
 		if (port_id == AFE_PORT_INVALID) {

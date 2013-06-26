@@ -198,4 +198,10 @@ config SND_SOC_MSM8930_HTC
    bool "MSM8930_HTC"
    help
      Support msm8930 for HTC
+
+config SND_SOC_MSM8930_FM_MI2S
+   depends on ARCH_MSM8930
+   bool "MSM8930_FM_MI2S"
+   help
+     Define msm8930 using MI2S for FM. Or using I2S for FM.
 endmenu

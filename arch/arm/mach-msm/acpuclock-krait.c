@@ -40,24 +40,23 @@
 #include "avs.h"
 
 #define CPU_FOOT_PRINT_MAGIC				0xACBDFE00
-#define CPU_FOOT_PRINT_BASE_CPU0_VIRT		(MSM_KERNEL_FOOTPRINT_BASE + 0x0)
 static void set_acpuclk_foot_print(unsigned cpu, unsigned state)
 {
-	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE_CPU0_VIRT + 0x6C) + cpu;
+	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE + 0x6C) + cpu;
 	*status = (CPU_FOOT_PRINT_MAGIC | state);
 	mb();
 }
 
 static void set_acpuclk_cpu_freq_foot_print(unsigned cpu, unsigned khz)
 {
-	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE_CPU0_VIRT + 0x58) + cpu;
+	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE + 0x58) + cpu;
 	*status = khz;
 	mb();
 }
 
 static void set_acpuclk_L2_freq_foot_print(unsigned khz)
 {
-	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE_CPU0_VIRT + 0x68);
+	unsigned *status = (unsigned *)(CPU_FOOT_PRINT_BASE + 0x68);
 	*status = khz;
 	mb();
 }

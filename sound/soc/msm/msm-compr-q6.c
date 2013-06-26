@@ -567,7 +567,7 @@ static void populate_codec_list(struct compr_audio *compr,
 {
 	pr_debug("%s\n", __func__);
 	
-	compr->info.compr_cap.num_codecs = 8;
+	compr->info.compr_cap.num_codecs = 11;
 	compr->info.compr_cap.min_fragment_size = runtime->hw.period_bytes_min;
 	compr->info.compr_cap.max_fragment_size = runtime->hw.period_bytes_max;
 	compr->info.compr_cap.min_fragments = runtime->hw.periods_min;
@@ -838,7 +838,11 @@ static int msm_compr_hw_params(struct snd_pcm_substream *substream,
 		.rampingcurve = SOFT_PAUSE_CURVE_LINEAR,
 	};
 	struct asm_softvolume_params softvol = {
+#ifdef CONFIG_MSM8960_ONLY
+		.period = 30,
+#else
 		.period = 50,
+#endif
 		.step = SOFT_VOLUME_STEP,
 		.rampingcurve = SOFT_VOLUME_CURVE_LINEAR,
 	};
@@ -906,7 +910,7 @@ static int msm_compr_hw_params(struct snd_pcm_substream *substream,
 
 	if (str_name != NULL && !strncmp(str_name,"COMPR2", 6)) {
 		if (compressed2_audio.prtd && compressed2_audio.prtd->audio_client) {
-			pr_debug("[%p] %s compressed2 set ramping\n", prtd, __func__);
+			pr_debug("[%p] %s compressed2 set ramping for %d ms\n", prtd, __func__,softvol.period);
 			ret = compressed2_set_volume(compressed2_audio.volume);
 			if (ret < 0)
 				pr_err("[%p] %s : Set Volume2 failed : %d", prtd, __func__, ret);
@@ -924,7 +928,7 @@ static int msm_compr_hw_params(struct snd_pcm_substream *substream,
 		}
 	} else {
 		if (compressed_audio.prtd && compressed_audio.prtd->audio_client) {
-			pr_debug("[%p] %s compressed set ramping\n", prtd, __func__);
+			pr_debug("[%p] %s compressed set ramping for %d ms\n", prtd, __func__,softvol.period);
 			ret = compressed_set_volume(compressed_audio.volume);
 			if (ret < 0)
 				pr_err("[%p] %s : Set Volume failed : %d", prtd,__func__, ret);

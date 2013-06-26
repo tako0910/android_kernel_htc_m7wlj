@@ -83,6 +83,7 @@ static int suspend_highfreq_check_reason;
 #define CONTEXT_STATE_BIT_TALK			(1)
 #define CONTEXT_STATE_BIT_SEARCH		(1<<1)
 #define CONTEXT_STATE_BIT_NAVIGATION	(1<<2)
+#define CONTEXT_STATE_BIT_DAYDREAM		(1<<3)
 static int context_state;
 
 #define STATE_WORKQUEUE_PENDING			(1)
@@ -748,6 +749,16 @@ static int htc_batt_context_event_handler(enum batt_context_event event)
 			goto exit;
 		context_state &= ~CONTEXT_STATE_BIT_NAVIGATION;
 		break;
+	case EVENT_DAYDREAM_START:
+		if (context_state & CONTEXT_STATE_BIT_DAYDREAM)
+			goto exit;
+		context_state |= CONTEXT_STATE_BIT_DAYDREAM;
+		break;
+	case EVENT_DAYDREAM_STOP:
+		if (!(context_state & CONTEXT_STATE_BIT_DAYDREAM))
+			goto exit;
+		context_state &= ~CONTEXT_STATE_BIT_DAYDREAM;
+		break;
 	default:
 		pr_warn("unsupported context event (%d)\n", event);
 		goto exit;
@@ -896,6 +907,16 @@ static ssize_t htc_battery_show_cc_attr(struct device_attribute *attr,
 	}
 
 	return len;
+}
+
+static int htc_batt_set_max_input_current(int target_ma)
+{
+		if(htc_batt_info.icharger && htc_batt_info.icharger->max_input_current) {
+			htc_batt_info.icharger->max_input_current(target_ma);
+			return 0;
+		}
+		else
+			return -1;
 }
 
 static ssize_t htc_battery_show_htc_extension_attr(struct device_attribute *attr,
@@ -1307,7 +1328,8 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 
 static void batt_update_limited_charge(void)
 {
-	if (htc_batt_info.state & STATE_EARLY_SUSPEND) {
+	if ((htc_batt_info.state & STATE_EARLY_SUSPEND)
+		|| (context_state & CONTEXT_STATE_BIT_DAYDREAM)) {
 		
 		set_limit_charge_with_reason(false, HTC_BATT_CHG_LIMIT_BIT_THRML);
 	} else {
@@ -1564,7 +1586,7 @@ static void batt_worker(struct work_struct *work)
 		
 		pr_info("[BATT] prev_chg_src=%d, prev_chg_en=%d,"
 				" chg_dis_reason/control/active=0x%x/0x%x/0x%x,"
-				" chg_limit_reason=0x%x,"
+				" chg_limit_reason/active=0x%x/0x%x,"
 				" pwrsrc_dis_reason=0x%x, prev_pwrsrc_enabled=%d,"
 				" context_state=0x%x,"
 				" htc_extension=0x%x, sw_stimer_counter=%ld\n",
@@ -1573,6 +1595,7 @@ static void batt_worker(struct work_struct *work)
 					chg_dis_reason & chg_dis_control_mask,
 					chg_dis_reason & chg_dis_active_mask,
 					chg_limit_reason,
+					chg_limit_active_mask,
 					pwrsrc_dis_reason, prev_pwrsrc_enabled,
 					context_state,
 					htc_batt_info.htc_extension,
@@ -2023,6 +2046,7 @@ static int htc_battery_probe(struct platform_device *pdev)
 	htc_battery_core_ptr->func_get_battery_info = htc_batt_get_battery_info;
 	htc_battery_core_ptr->func_charger_control = htc_batt_charger_control;
 	htc_battery_core_ptr->func_set_full_level = htc_batt_set_full_level;
+	htc_battery_core_ptr->func_set_max_input_current = htc_batt_set_max_input_current;
 	htc_battery_core_ptr->func_context_event_handler =
 											htc_batt_context_event_handler;
 	htc_battery_core_ptr->func_notify_pnpmgr_charging_enabled =

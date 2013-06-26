@@ -124,9 +124,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 {
 	struct mmc_command *cmd = mrq->cmd;
 	int err = cmd->error;
-#ifdef CONFIG_MMC_PERF_PROFILING
 	ktime_t diff;
-#endif
 
 	if (err && cmd->retries && mmc_host_is_spi(host)) {
 		if (cmd->resp[0] & R1_SPI_ILLEGAL_COMMAND)
@@ -169,8 +167,15 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 				}
 			}
 #else
-			if (host->tp_enable)
-				trace_mmc_req_end(&host->class_dev, cmd->opcode);
+			if (host->tp_enable) {
+				if (host->perf_enable) {
+					diff = ktime_sub(ktime_get(), host->rq_start);
+					trace_mmc_request_done(&host->class_dev,
+							cmd->opcode, mrq->cmd->arg,
+							mrq->data->blocks, ktime_to_ms(diff));
+				} else
+					trace_mmc_req_end(&host->class_dev, cmd->opcode);
+			}
 #endif
 			pr_debug("%s:     %d bytes transferred: %d\n",
 				mmc_hostname(host),
@@ -255,9 +260,11 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 			mrq->stop->error = 0;
 			mrq->stop->mrq = mrq;
 		}
-#ifdef CONFIG_MMC_PERF_PROFILING
 		if (host->perf_enable)
+#ifdef CONFIG_MMC_PERF_PROFILING
 			host->perf.start = ktime_get();
+#else
+			host->rq_start = ktime_get();
 #endif
 	}
 	mmc_host_clk_hold(host);

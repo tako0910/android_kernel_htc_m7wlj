@@ -332,8 +332,9 @@ struct mmc_host {
 		ktime_t wtime_drv;	   
 		ktime_t start;
 	} perf;
-	bool perf_enable;
 #endif
+	bool perf_enable;
+	ktime_t rq_start;
 
 	struct mmc_ios saved_ios;
 	unsigned long		private[0] ____cacheline_aligned;

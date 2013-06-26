@@ -1080,6 +1080,10 @@ config HTC_ONMODE_CHARGING
 	help
 		support on mode charing icon
 
+config HTC_FD_MONITOR
+	bool "fd operation monitor mechanism"
+	default n
+
 choice
 	prompt "Default Timer"
 	default MSM7X00A_USE_GP_TIMER
@@ -2676,6 +2680,18 @@ config MACH_M7_DXG
         bool "APQ8064 M7_DXG"
         help
           Support for the HTC APQ8064 M7_DXG.
+
+config MACH_M7_DXG
+        depends on ARCH_APQ8064
+        bool "APQ8064 M7_DXG"
+        help
+          Support for the HTC APQ8064 M7_DXG.
+
+config MACH_T6_DXG
+        depends on ARCH_APQ8064
+        bool "APQ8064 T6_DXG"
+        help
+          Support for the HTC APQ8064 T6_DXG.
 
 config QSC_MODEM
         default n

@@ -532,10 +532,23 @@ int __init board_ats_init(char *s)
 }
 __setup("ats=", board_ats_init);
 
+#define RAW_SN_LEN	4
+
+static int tamper_sf;
 static char android_serialno[16] = {0};
 static int __init board_serialno_setup(char *serialno)
 {
-	pr_info("%s: set serial no to %s\r\n", __func__, serialno);
+	if (tamper_sf) {
+		int i;
+		char hashed_serialno[16] = {0};
+
+		strncpy(hashed_serialno, serialno, sizeof(hashed_serialno)/sizeof(hashed_serialno[0]) - 1);
+		for (i = strlen(hashed_serialno) - 1; i >= RAW_SN_LEN; i--)
+			hashed_serialno[i - RAW_SN_LEN] = '*';
+		pr_info("%s: set serial no to %s\r\n", __func__, hashed_serialno);
+	} else {
+		pr_info("%s: set serial no to %s\r\n", __func__, serialno);
+	}
 	strncpy(android_serialno, serialno, sizeof(android_serialno)/sizeof(android_serialno[0]) - 1);
 	return 1;
 }
@@ -553,7 +566,6 @@ int board_get_usb_ats(void)
 }
 EXPORT_SYMBOL(board_get_usb_ats);
 
-static int tamper_sf;
 int __init check_tamper_sf(char *s)
 {
 	tamper_sf = simple_strtoul(s, 0, 10);

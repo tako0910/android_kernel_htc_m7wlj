@@ -6,6 +6,12 @@
 
 menu "Miscellaneous I2C Chip support"
 
+
+config INPUT_YAS_MAGNETOMETER
+        tristate "YAS Geomagnetic Sensor"
+        depends on I2C
+
+
 config SENSORS_AKM8975
         tristate "AKM8973 Compass Driver"
         depends on I2C

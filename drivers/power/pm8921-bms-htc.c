@@ -67,6 +67,9 @@ static bool flag_enable_bms_chg_log;
 #define OCV_UPDATE_STORAGE	0x105
 #define OCV_UPDATE_STORAGE_USE_MASK	0x0F
 
+#define BATT_MAX_OCV_UV		5000000
+#define BATT_MIN_OCV_UV		0
+
 enum pmic_bms_interrupts {
 	PM8921_BMS_SBI_WRITE_OK,
 	PM8921_BMS_CC_THR,
@@ -1013,9 +1016,19 @@ static int read_soc_params_raw(struct pm8921_bms_chip *chip,
 				bms_dbg.last_ocv_raw_uv, chip->ocv_reading_at_100,
 				chip->cc_backup_uv, chip->ocv_backup_uv, last_ocv_uv);
 	} else if (chip->prev_last_good_ocv_raw != raw->last_good_ocv_raw) {
-		chip->prev_last_good_ocv_raw = raw->last_good_ocv_raw;
 		convert_vbatt_raw_to_uv(chip, usb_chg,
 			raw->last_good_ocv_raw, &raw->last_good_ocv_uv);
+		
+		if (raw->last_good_ocv_uv <= BATT_MIN_OCV_UV
+			|| raw->last_good_ocv_uv > BATT_MAX_OCV_UV) {
+			pr_info("%s: abnormal hw ocv_raw=%x, ocv_uv=%duV, raw.cc=%x",
+				__func__, raw->last_good_ocv_raw, raw->last_good_ocv_uv, raw->cc);
+			raw->last_good_ocv_raw = chip->prev_last_good_ocv_raw;
+			convert_vbatt_raw_to_uv(chip, usb_chg,
+				raw->last_good_ocv_raw, &raw->last_good_ocv_uv);
+			return 0;
+		} else
+			chip->prev_last_good_ocv_raw = raw->last_good_ocv_raw;
 
 		bms_dbg.last_ocv_raw_uv = last_ocv_uv = raw->last_good_ocv_uv;
 

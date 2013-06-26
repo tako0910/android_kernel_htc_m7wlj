@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -100,6 +100,7 @@ static const DECLARE_TLV_DB_LINEAR(compressed2_rx_vol_gain, 0,
 			INT_RX_VOL_MAX_STEPS);
 static int msm_route_ec_ref_rx;
 static int msm_route_ext_ec_ref;
+static int msm_route_voip_ext_ec_ref;
 
 #define MAX_EQ_SESSIONS		MSM_FRONTEND_DAI_CS_VOICE
 
@@ -1284,12 +1285,57 @@ static int msm_routing_ext_ec_put(struct snd_kcontrol *kcontrol,
 static const char * const ext_ec_ref_rx[] = {"NONE", "MI2S_TX"};
 
 static const struct soc_enum msm_route_ext_ec_ref_rx_enum[] = {
-	SOC_ENUM_SINGLE_EXT(2, ext_ec_ref_rx),
+			SOC_ENUM_SINGLE_EXT(2, ext_ec_ref_rx),
 };
 
 static const struct snd_kcontrol_new voc_ext_ec_mux =
 	SOC_DAPM_ENUM_EXT("VOC_EXT_EC MUX Mux", msm_route_ext_ec_ref_rx_enum[0],
 			  msm_routing_ext_ec_get, msm_routing_ext_ec_put);
+
+static int msm_routing_voip_ext_ec_get(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s: voip_ext_ec_ref_rx  = %x\n", __func__, msm_route_voip_ext_ec_ref);
+	ucontrol->value.integer.value[0] = msm_route_voip_ext_ec_ref;
+	return 0;
+}
+
+static int msm_routing_voip_ext_ec_put(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dapm_widget_list *wlist = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_dapm_widget *widget = wlist->widgets[0];
+	int mux = ucontrol->value.enumerated.item[0];
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	int ret = 0;
+
+	pr_debug("%s: msm_route_voip_ec_ref_rx = %d value = %ld\n",
+		 __func__, msm_route_voip_ext_ec_ref,
+		 ucontrol->value.integer.value[0]);
+
+	switch (ucontrol->value.integer.value[0]) {
+	case 1:
+		msm_route_voip_ext_ec_ref = MI2S_TX;
+		ret = voc_set_ext_ec_ref(msm_route_voip_ext_ec_ref, true);
+		break;
+	default:
+		msm_route_voip_ext_ec_ref = AFE_PORT_INVALID;
+		ret = voc_set_ext_ec_ref(msm_route_voip_ext_ec_ref, false);
+		break;
+	}
+	snd_soc_dapm_mux_update_power(widget, kcontrol, 1, mux, e);
+	return ret;
+}
+
+static const char * const voip_ext_ec_ref_rx[] = {"NONE", "MI2S_TX"};
+
+static const struct soc_enum msm_route_voip_ext_ec_ref_rx_enum[] = {
+			SOC_ENUM_SINGLE_EXT(2, voip_ext_ec_ref_rx),
+};
+
+static const struct snd_kcontrol_new voip_ext_ec_mux =
+	SOC_DAPM_ENUM_EXT("VOIP_EXT_EC MUX Mux", msm_route_voip_ext_ec_ref_rx_enum[0],
+			  msm_routing_voip_ext_ec_get, msm_routing_voip_ext_ec_put);
 
 
 static const struct snd_kcontrol_new pri_i2s_rx_mixer_controls[] = {
@@ -2559,6 +2605,7 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 	SND_SOC_DAPM_OUTPUT("BE_OUT"),
 	SND_SOC_DAPM_INPUT("BE_IN"),
 	SND_SOC_DAPM_MUX("VOC_EXT_EC MUX", SND_SOC_NOPM, 0, 0, &voc_ext_ec_mux),
+	SND_SOC_DAPM_MUX("VOIP_EXT_EC MUX", SND_SOC_NOPM, 0, 0, &voip_ext_ec_mux),
 
 };
 
@@ -2734,7 +2781,10 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"HDMI", NULL, "HDMI_DL_HL"},
 
 	{"VOC_EXT_EC MUX", "MI2S_TX" , "MI2S_TX"},
+	{"VOIP_EXT_EC MUX", "MI2S_TX", "MI2S_TX"},
 	{"CS-VOICE_UL1", NULL, "VOC_EXT_EC MUX"},
+	{"VOIP_UL", NULL, "VOIP_EXT_EC MUX"},
+
 	{"Voice_Tx Mixer", "PRI_TX_Voice", "PRI_I2S_TX"},
 	{"Voice_Tx Mixer", "MI2S_TX_Voice", "MI2S_TX"},
 	{"Voice_Tx Mixer", "SLIM_0_TX_Voice", "SLIMBUS_0_TX"},
@@ -2783,7 +2833,8 @@ static const struct snd_soc_dapm_route intercon[] = {
 #if defined(CONFIG_MACH_M7_DXG)  || \
     defined(CONFIG_MACH_DUMMY) || \
     defined(CONFIG_MACH_DUMMY) || \
-    defined(CONFIG_MACH_DUMMY)
+    defined(CONFIG_MACH_DUMMY) || \
+    defined(CONFIG_MACH_T6_DXG)
 	
 	
 	

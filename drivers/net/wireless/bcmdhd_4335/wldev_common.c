@@ -683,6 +683,21 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 	return 0;
 }
 
+void
+wldev_set_scanabort(struct net_device *dev)
+{
+
+	s8 iovar_buf[WLC_IOCTL_SMLEN];
+	int ret = 0;
+
+	memset(iovar_buf, 0, sizeof(iovar_buf));
+	ret = wldev_iovar_setbuf(dev, "scanabort", NULL, 0, iovar_buf,
+		sizeof(iovar_buf), NULL);
+	if (ret)
+		printf("%s failed ret = %d\n", __func__, ret);
+
+}
+
 extern int wl_softap_stop(struct net_device *dev);
 
 #ifdef APSTA_CONCURRENT

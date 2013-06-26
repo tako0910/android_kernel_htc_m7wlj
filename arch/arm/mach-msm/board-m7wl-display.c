@@ -255,13 +255,6 @@ static struct lcdc_platform_data dtv_pdata = {
 };
 #endif
 
-static int mdp_core_clk_rate_table[] = {
-	200000000,
-	200000000,
-	200000000,
-	200000000,
-};
-
 struct mdp_reg {
 	uint32_t reg;
 	uint32_t val;
@@ -530,6 +523,267 @@ struct mdp_reg mdp_gamma_jdi[] = {
         {0x90070, 0x0F, 0x0},
 };
 
+struct mdp_reg mdp_gamma_renesas[] = {
+        {0x94800, 0x000000, 0x0},
+        {0x94804, 0x010101, 0x0},
+        {0x94808, 0x020202, 0x0},
+        {0x9480C, 0x030303, 0x0},
+        {0x94810, 0x040404, 0x0},
+        {0x94814, 0x050505, 0x0},
+        {0x94818, 0x060606, 0x0},
+        {0x9481C, 0x070707, 0x0},
+        {0x94820, 0x080808, 0x0},
+        {0x94824, 0x090909, 0x0},
+        {0x94828, 0x0A0A0A, 0x0},
+        {0x9482C, 0x0B0B0B, 0x0},
+        {0x94830, 0x0C0C0C, 0x0},
+        {0x94834, 0x0D0D0D, 0x0},
+        {0x94838, 0x0E0E0E, 0x0},
+        {0x9483C, 0x0F0F0F, 0x0},
+        {0x94840, 0x101010, 0x0},
+        {0x94844, 0x111111, 0x0},
+        {0x94848, 0x121212, 0x0},
+        {0x9484C, 0x131313, 0x0},
+        {0x94850, 0x141414, 0x0},
+        {0x94854, 0x151515, 0x0},
+        {0x94858, 0x161616, 0x0},
+        {0x9485C, 0x171717, 0x0},
+        {0x94860, 0x181818, 0x0},
+        {0x94864, 0x191919, 0x0},
+        {0x94868, 0x1A1A1A, 0x0},
+        {0x9486C, 0x1B1B1B, 0x0},
+        {0x94870, 0x1C1C1C, 0x0},
+        {0x94874, 0x1D1D1D, 0x0},
+        {0x94878, 0x1E1E1E, 0x0},
+        {0x9487C, 0x1F1F1F, 0x0},
+        {0x94880, 0x202020, 0x0},
+        {0x94884, 0x212121, 0x0},
+        {0x94888, 0x222222, 0x0},
+        {0x9488C, 0x232323, 0x0},
+        {0x94890, 0x242424, 0x0},
+        {0x94894, 0x252525, 0x0},
+        {0x94898, 0x262626, 0x0},
+        {0x9489C, 0x272727, 0x0},
+        {0x948A0, 0x282828, 0x0},
+        {0x948A4, 0x292929, 0x0},
+        {0x948A8, 0x2A2A2A, 0x0},
+        {0x948AC, 0x2B2B2B, 0x0},
+        {0x948B0, 0x2C2C2C, 0x0},
+        {0x948B4, 0x2D2D2D, 0x0},
+        {0x948B8, 0x2E2E2E, 0x0},
+        {0x948BC, 0x2F2F2F, 0x0},
+        {0x948C0, 0x303030, 0x0},
+        {0x948C4, 0x313131, 0x0},
+        {0x948C8, 0x323232, 0x0},
+        {0x948CC, 0x333333, 0x0},
+        {0x948D0, 0x343434, 0x0},
+        {0x948D4, 0x353535, 0x0},
+        {0x948D8, 0x363636, 0x0},
+        {0x948DC, 0x373737, 0x0},
+        {0x948E0, 0x383838, 0x0},
+        {0x948E4, 0x393939, 0x0},
+        {0x948E8, 0x3A3A3A, 0x0},
+        {0x948EC, 0x3B3B3B, 0x0},
+        {0x948F0, 0x3C3C3C, 0x0},
+        {0x948F4, 0x3D3D3D, 0x0},
+        {0x948F8, 0x3E3E3E, 0x0},
+        {0x948FC, 0x3F3F3F, 0x0},
+        {0x94900, 0x404040, 0x0},
+        {0x94904, 0x414141, 0x0},
+        {0x94908, 0x424242, 0x0},
+        {0x9490C, 0x434343, 0x0},
+        {0x94910, 0x444444, 0x0},
+        {0x94914, 0x454545, 0x0},
+        {0x94918, 0x464646, 0x0},
+        {0x9491C, 0x474747, 0x0},
+        {0x94920, 0x484848, 0x0},
+        {0x94924, 0x494949, 0x0},
+        {0x94928, 0x4A4A4A, 0x0},
+        {0x9492C, 0x4B4B4B, 0x0},
+        {0x94930, 0x4C4C4C, 0x0},
+        {0x94934, 0x4D4D4D, 0x0},
+        {0x94938, 0x4E4E4E, 0x0},
+        {0x9493C, 0x4F4F4F, 0x0},
+        {0x94940, 0x505050, 0x0},
+        {0x94944, 0x515151, 0x0},
+        {0x94948, 0x525252, 0x0},
+        {0x9494C, 0x535353, 0x0},
+        {0x94950, 0x545454, 0x0},
+        {0x94954, 0x555555, 0x0},
+        {0x94958, 0x565656, 0x0},
+        {0x9495C, 0x575757, 0x0},
+        {0x94960, 0x585858, 0x0},
+        {0x94964, 0x595959, 0x0},
+        {0x94968, 0x5A5A5A, 0x0},
+        {0x9496C, 0x5B5B5B, 0x0},
+        {0x94970, 0x5C5C5C, 0x0},
+        {0x94974, 0x5D5D5D, 0x0},
+        {0x94978, 0x5E5E5E, 0x0},
+        {0x9497C, 0x5F5F5F, 0x0},
+        {0x94980, 0x606060, 0x0},
+        {0x94984, 0x616161, 0x0},
+        {0x94988, 0x626262, 0x0},
+        {0x9498C, 0x636363, 0x0},
+        {0x94990, 0x646464, 0x0},
+        {0x94994, 0x656565, 0x0},
+        {0x94998, 0x666666, 0x0},
+        {0x9499C, 0x676767, 0x0},
+        {0x949A0, 0x686868, 0x0},
+        {0x949A4, 0x696969, 0x0},
+        {0x949A8, 0x6A6A6A, 0x0},
+        {0x949AC, 0x6B6B6B, 0x0},
+        {0x949B0, 0x6C6C6C, 0x0},
+        {0x949B4, 0x6D6D6D, 0x0},
+        {0x949B8, 0x6E6E6E, 0x0},
+        {0x949BC, 0x6F6F6F, 0x0},
+        {0x949C0, 0x707070, 0x0},
+        {0x949C4, 0x717171, 0x0},
+        {0x949C8, 0x727272, 0x0},
+        {0x949CC, 0x737373, 0x0},
+        {0x949D0, 0x747474, 0x0},
+        {0x949D4, 0x757575, 0x0},
+        {0x949D8, 0x767676, 0x0},
+        {0x949DC, 0x777777, 0x0},
+        {0x949E0, 0x787878, 0x0},
+        {0x949E4, 0x797979, 0x0},
+        {0x949E8, 0x7A7A7A, 0x0},
+        {0x949EC, 0x7B7B7B, 0x0},
+        {0x949F0, 0x7C7C7C, 0x0},
+        {0x949F4, 0x7D7D7D, 0x0},
+        {0x949F8, 0x7E7E7E, 0x0},
+        {0x949FC, 0x7F7F7F, 0x0},
+        {0x94A00, 0x808080, 0x0},
+        {0x94A04, 0x818181, 0x0},
+        {0x94A08, 0x828282, 0x0},
+        {0x94A0C, 0x838383, 0x0},
+        {0x94A10, 0x848484, 0x0},
+        {0x94A14, 0x858585, 0x0},
+        {0x94A18, 0x868686, 0x0},
+        {0x94A1C, 0x878787, 0x0},
+        {0x94A20, 0x888788, 0x0},
+        {0x94A24, 0x898889, 0x0},
+        {0x94A28, 0x8A898A, 0x0},
+        {0x94A2C, 0x8B8A8B, 0x0},
+        {0x94A30, 0x8C8B8C, 0x0},
+        {0x94A34, 0x8D8C8D, 0x0},
+        {0x94A38, 0x8E8D8E, 0x0},
+        {0x94A3C, 0x8F8E8F, 0x0},
+        {0x94A40, 0x908F90, 0x0},
+        {0x94A44, 0x919091, 0x0},
+        {0x94A48, 0x929192, 0x0},
+        {0x94A4C, 0x939293, 0x0},
+        {0x94A50, 0x949394, 0x0},
+        {0x94A54, 0x959495, 0x0},
+        {0x94A58, 0x969596, 0x0},
+        {0x94A5C, 0x979697, 0x0},
+        {0x94A60, 0x989698, 0x0},
+        {0x94A64, 0x999799, 0x0},
+        {0x94A68, 0x9A989A, 0x0},
+        {0x94A6C, 0x9B999B, 0x0},
+        {0x94A70, 0x9C9A9C, 0x0},
+        {0x94A74, 0x9D9B9D, 0x0},
+        {0x94A78, 0x9E9C9E, 0x0},
+        {0x94A7C, 0x9F9D9F, 0x0},
+        {0x94A80, 0xA09EA0, 0x0},
+        {0x94A84, 0xA19FA1, 0x0},
+        {0x94A88, 0xA2A0A2, 0x0},
+        {0x94A8C, 0xA3A1A3, 0x0},
+        {0x94A90, 0xA4A2A4, 0x0},
+        {0x94A94, 0xA5A3A5, 0x0},
+        {0x94A98, 0xA6A4A6, 0x0},
+        {0x94A9C, 0xA7A5A7, 0x0},
+        {0x94AA0, 0xA8A5A8, 0x0},
+        {0x94AA4, 0xA9A6A9, 0x0},
+        {0x94AA8, 0xAAA7AA, 0x0},
+        {0x94AAC, 0xABA8AB, 0x0},
+        {0x94AB0, 0xACA9AC, 0x0},
+        {0x94AB4, 0xADAAAD, 0x0},
+        {0x94AB8, 0xAEABAE, 0x0},
+        {0x94ABC, 0xAFACAF, 0x0},
+        {0x94AC0, 0xB0ADB0, 0x0},
+        {0x94AC4, 0xB1AEB1, 0x0},
+        {0x94AC8, 0xB2AFB2, 0x0},
+        {0x94ACC, 0xB3B0B3, 0x0},
+        {0x94AD0, 0xB4B1B4, 0x0},
+        {0x94AD4, 0xB5B2B5, 0x0},
+        {0x94AD8, 0xB6B3B6, 0x0},
+        {0x94ADC, 0xB7B4B7, 0x0},
+        {0x94AE0, 0xB8B4B8, 0x0},
+        {0x94AE4, 0xB9B5B9, 0x0},
+        {0x94AE8, 0xBAB6BA, 0x0},
+        {0x94AEC, 0xBBB7BB, 0x0},
+        {0x94AF0, 0xBCB8BC, 0x0},
+        {0x94AF4, 0xBDB9BD, 0x0},
+        {0x94AF8, 0xBEBABE, 0x0},
+        {0x94AFC, 0xBFBBBF, 0x0},
+        {0x94B00, 0xC0BCC0, 0x0},
+        {0x94B04, 0xC1BDC1, 0x0},
+        {0x94B08, 0xC2BEC2, 0x0},
+        {0x94B0C, 0xC3BFC3, 0x0},
+        {0x94B10, 0xC4C0C4, 0x0},
+        {0x94B14, 0xC5C1C5, 0x0},
+        {0x94B18, 0xC6C2C6, 0x0},
+        {0x94B1C, 0xC7C3C7, 0x0},
+        {0x94B20, 0xC8C3C8, 0x0},
+        {0x94B24, 0xC9C4C9, 0x0},
+        {0x94B28, 0xCAC5CA, 0x0},
+        {0x94B2C, 0xCBC6CB, 0x0},
+        {0x94B30, 0xCCC7CC, 0x0},
+        {0x94B34, 0xCDC8CD, 0x0},
+        {0x94B38, 0xCEC9CE, 0x0},
+        {0x94B3C, 0xCFCACF, 0x0},
+        {0x94B40, 0xD0CBD0, 0x0},
+        {0x94B44, 0xD1CCD1, 0x0},
+        {0x94B48, 0xD2CDD2, 0x0},
+        {0x94B4C, 0xD3CED3, 0x0},
+        {0x94B50, 0xD4CFD4, 0x0},
+        {0x94B54, 0xD5D0D5, 0x0},
+        {0x94B58, 0xD6D1D6, 0x0},
+        {0x94B5C, 0xD7D2D7, 0x0},
+        {0x94B60, 0xD8D2D8, 0x0},
+        {0x94B64, 0xD9D3D9, 0x0},
+        {0x94B68, 0xDAD4DA, 0x0},
+        {0x94B6C, 0xDBD5DB, 0x0},
+        {0x94B70, 0xDCD6DC, 0x0},
+        {0x94B74, 0xDDD7DD, 0x0},
+        {0x94B78, 0xDED8DE, 0x0},
+        {0x94B7C, 0xDFD9DF, 0x0},
+        {0x94B80, 0xE0DAE0, 0x0},
+        {0x94B84, 0xE1DBE1, 0x0},
+        {0x94B88, 0xE2DCE2, 0x0},
+        {0x94B8C, 0xE3DDE3, 0x0},
+        {0x94B90, 0xE4DEE4, 0x0},
+        {0x94B94, 0xE5DFE5, 0x0},
+        {0x94B98, 0xE6E0E6, 0x0},
+        {0x94B9C, 0xE7E1E7, 0x0},
+        {0x94BA0, 0xE8E1E8, 0x0},
+        {0x94BA4, 0xE9E2E9, 0x0},
+        {0x94BA8, 0xEAE3EA, 0x0},
+        {0x94BAC, 0xEBE4EB, 0x0},
+        {0x94BB0, 0xECE5EC, 0x0},
+        {0x94BB4, 0xEDE6ED, 0x0},
+        {0x94BB8, 0xEEE7EE, 0x0},
+        {0x94BBC, 0xEFE8EF, 0x0},
+        {0x94BC0, 0xF0E9F0, 0x0},
+        {0x94BC4, 0xF1EAF1, 0x0},
+        {0x94BC8, 0xF2EBF2, 0x0},
+        {0x94BCC, 0xF3ECF3, 0x0},
+        {0x94BD0, 0xF4EDF4, 0x0},
+        {0x94BD4, 0xF5EEF5, 0x0},
+        {0x94BD8, 0xF6EFF6, 0x0},
+        {0x94BDC, 0xF7F0F7, 0x0},
+        {0x94BE0, 0xF8F0F8, 0x0},
+        {0x94BE4, 0xF9F1F9, 0x0},
+        {0x94BE8, 0xFAF2FA, 0x0},
+        {0x94BEC, 0xFBF3FB, 0x0},
+        {0x94BF0, 0xFCF4FC, 0x0},
+        {0x94BF4, 0xFDF5FD, 0x0},
+        {0x94BF8, 0xFEF6FE, 0x0},
+        {0x94BFC, 0xFFF7FF, 0x0},
+        {0x90070, 0x0F, 0x0},
+
+};
+
 int m7wl_mdp_gamma(void)
 {
 	if (mdp_gamma == NULL)
@@ -761,37 +1015,56 @@ static struct mipi_dsi_panel_platform_data *mipi_m7wl_pdata;
 
 static struct dsi_buf m7wl_panel_tx_buf;
 static struct dsi_buf m7wl_panel_rx_buf;
+
+//#define CABC_DIMMING_SWITCH
+
 static struct dsi_cmd_desc *video_on_cmds = NULL;
 static struct dsi_cmd_desc *display_on_cmds = NULL;
 static struct dsi_cmd_desc *display_off_cmds = NULL;
 static struct dsi_cmd_desc *backlight_cmds = NULL;
 static struct dsi_cmd_desc *cmd_on_cmds = NULL;
+#ifdef CABC_DIMMING_SWITCH
 static struct dsi_cmd_desc *dim_on_cmds = NULL;
 static struct dsi_cmd_desc *dim_off_cmds = NULL;
+#endif
 static struct dsi_cmd_desc *color_en_on_cmds = NULL;
 static struct dsi_cmd_desc *color_en_off_cmds = NULL;
 static struct dsi_cmd_desc **sre_ctrl_cmds = NULL;
+#ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 static struct dsi_cmd_desc *set_cabc_UI_cmds = NULL;
 static struct dsi_cmd_desc *set_cabc_Video_cmds = NULL;
+static struct dsi_cmd_desc *set_cabc_Camera_cmds = NULL;
+#endif
 static int backlight_cmds_count = 0;
 static int video_on_cmds_count = 0;
 static int display_on_cmds_count = 0;
 static int display_off_cmds_count = 0;
 static int cmd_on_cmds_count = 0;
+#ifdef CABC_DIMMING_SWITCH
 static int dim_on_cmds_count = 0;
 static int dim_off_cmds_count = 0;
+#endif
 static int color_en_on_cmds_count = 0;
 static int color_en_off_cmds_count = 0;
 static int sre_ctrl_cmds_count = 0;
+#ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 static int set_cabc_UI_cmds_count = 0;
 static int set_cabc_Video_cmds_count = 0;
+static int set_cabc_Camera_cmds_count = 0;
+#endif
 
+#ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
+static int cabc_mode = 0;
+static int cur_cabc_mode = 0;
+static struct mutex set_cabc_mutex;
+void m7_set_cabc (struct msm_fb_data_type *mfd, int mode);
+#endif
 static unsigned int pwm_min = 6;
 static unsigned int pwm_default = 81 ;
 static unsigned int pwm_max = 255;
+#ifdef CABC_DIMMING_SWITCH
 static atomic_t lcd_backlight_off;
-
-#define CABC_DIMMING_SWITCH
+#endif
 
 static char enter_sleep[2] = {0x10, 0x00}; 
 static char exit_sleep[2] = {0x11, 0x00}; 
@@ -1229,7 +1502,7 @@ static char Source_Timing_Setting[23]= {
 static char lock[] = {0xB0, 0x03};
 static char Write_Content_Adaptive_Brightness_Control[2] = {0x55, 0x42};
 static char common_setting[] = {
-       0xCE, 0x69, 0x40, 0x43,
+       0xCE, 0x6C, 0x40, 0x43,
        0x49, 0x55, 0x62, 0x71,
        0x82, 0x94, 0xA8, 0xB9,
        0xCB, 0xDB, 0xE9, 0xF5,
@@ -1525,8 +1798,7 @@ static unsigned char m7wl_shrink_pwm(int val)
 	} else if (val > BRI_SETTING_MAX)
 		shrink_br = pwm_max;
 
-	if(pwmic_ver < 2)
-		pwm_value = shrink_br;
+	pwm_value = shrink_br; 
 
 	PR_DISP_INFO("brightness orig=%d, transformed=%d\n", val, shrink_br);
 
@@ -1637,11 +1909,11 @@ static void m7wl_set_backlight(struct msm_fb_data_type *mfd)
                 atomic_set(&lcd_backlight_off, 1);
 		cmdreq.cmds = dim_off_cmds;
 		cmdreq.cmds_cnt = dim_off_cmds_count;
-				cmdreq.flags = CMD_REQ_COMMIT;
-				cmdreq.rlen = 0;
-				cmdreq.cb = NULL;
+		cmdreq.flags = CMD_REQ_COMMIT;
+		cmdreq.rlen = 0;
+		cmdreq.cb = NULL;
 
-				mipi_dsi_cmdlist_put(&cmdreq);
+		mipi_dsi_cmdlist_put(&cmdreq);
         } else
                 atomic_set(&lcd_backlight_off, 0);
 #endif
@@ -1653,6 +1925,12 @@ static void m7wl_set_backlight(struct msm_fb_data_type *mfd)
 
 	mipi_dsi_cmdlist_put(&cmdreq);
 
+#ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
+	
+	if (cabc_mode == 3) {
+		m7_set_cabc(mfd, cabc_mode);
+	}
+#endif
 	if ((mfd->bl_level) == 0) {
 #ifdef CONFIG_MACH_M7_WLJ
 		gpio_set_value_cansleep(bl_en, 0);
@@ -1698,6 +1976,7 @@ static struct dsi_cmd_desc sharp_renesas_c1_color_enhance_off_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(lock), lock},
 };
 
+#if 0
 static void m7wl_color_enhance(struct msm_fb_data_type *mfd, int on)
 {
 	if (color_en_on_cmds == NULL || color_en_off_cmds == NULL)
@@ -1725,6 +2004,7 @@ static void m7wl_color_enhance(struct msm_fb_data_type *mfd, int on)
 		PR_DISP_INFO("color enhance off\n");
 	}
 }
+#endif
 
 static char jdi_samsung_CABC_on[2] = {0x55, 0x03};
 static char jdi_samsung_CABC_off[2] = {0x55, 0x00};
@@ -1886,6 +2166,8 @@ static struct dsi_cmd_desc *sharp_renesas_sre_ctrl_cmds[10] = {
 		sharp_renesas_sre9_ctrl_cmds,
 		sharp_renesas_sre10_ctrl_cmds,
 };
+
+#if 0
 static void m7wl_sre_ctrl(struct msm_fb_data_type *mfd, unsigned long level)
 {
 	static long prev_level = 0, current_stage = 0, prev_stage = 0, tmp_stage = 0;
@@ -1970,6 +2252,7 @@ static void m7wl_sre_ctrl(struct msm_fb_data_type *mfd, unsigned long level)
 		PR_DISP_INFO("SRE level %lu prev_stage %lu current_stage %lu\n", level, tmp_stage, current_stage);
 	}
 }
+#endif
 
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 static char sharp_renesas_cabc_UI[2] = {0x55, 0x42};
@@ -1991,14 +2274,14 @@ static char TMF_cabc_UI[] = {
 		0x20, 0x14, 0x00, 0x16,
 		0x23, 0x18, 0x2C, 0x16,
 		0x00, 0x00};
-static char samsung_MIE_ctrl1_cabc_Video[4] = {0xC0, 0x40, 0x10, 0x80};
+static char samsung_MIE_ctrl1_cabc_Video[4] = {0xC0, 0x80, 0x10, 0x80};
 static char BCSAVE_cabc_Video[] = {
-		0xCD, 0x80, 0xB3, 0x67,
+		0xCD, 0x80, 0x99, 0x67,
 		0x1C, 0x78, 0x37, 0x00,
 		0x10, 0x73, 0x41, 0x99,
 		0x10, 0x00, 0x00};
 static char TMF_cabc_Video[] = {
-		0xCE, 0x33, 0x1C, 0x0D,
+		0xCE, 0x2C, 0x1C, 0x0D,
 		0x20, 0x14, 0x00, 0x16,
 		0x23, 0x18, 0x2C, 0x16,
 		0x00, 0x00};
@@ -2019,23 +2302,63 @@ static struct dsi_cmd_desc jdi_samsung_set_cabc_Video_cmds[] = {
 
 void m7wl_set_cabc (struct msm_fb_data_type *mfd, int mode)
 {
-	if (set_cabc_UI_cmds == NULL || set_cabc_Video_cmds == NULL)
+	int req_cabc_zoe_mode = 2;
+
+	if (set_cabc_UI_cmds == NULL || set_cabc_Video_cmds == NULL || set_cabc_Camera_cmds == NULL)
 		return;
 
-	if (mode == 2) {
+	mutex_lock(&set_cabc_mutex);
+	cabc_mode = mode;
+
+	if (mode == 1) {
                cmdreq.cmds = set_cabc_UI_cmds;
                cmdreq.cmds_cnt = set_cabc_UI_cmds_count;
-	} else if (mode == 3) {
+	} else if (mode == 2) {
                cmdreq.cmds = set_cabc_Video_cmds;
                cmdreq.cmds_cnt = set_cabc_Video_cmds_count;
-	} else
+	} else if (mode == 3) {
+		if (pwm_value < 168 && cur_cabc_mode == 3) {
+			req_cabc_zoe_mode = 2;
+			cmdreq.cmds = set_cabc_Video_cmds;
+			cmdreq.cmds_cnt = set_cabc_Video_cmds_count;
+		} else if (pwm_value >= 168 && cur_cabc_mode == 3) {
+			req_cabc_zoe_mode = 3;
+			cmdreq.cmds = set_cabc_Camera_cmds;
+			cmdreq.cmds_cnt = set_cabc_Camera_cmds_count;
+		} else if (pwm_value == 255) {
+			req_cabc_zoe_mode = 3;
+			cmdreq.cmds = set_cabc_Camera_cmds;
+			cmdreq.cmds_cnt = set_cabc_Camera_cmds_count;
+		} else {
+			req_cabc_zoe_mode = 2;
+			cmdreq.cmds = set_cabc_Video_cmds;
+			cmdreq.cmds_cnt = set_cabc_Video_cmds_count;
+		}
+
+		if (cur_cabc_mode != req_cabc_zoe_mode) {
+			cmdreq.flags = CMD_REQ_COMMIT;
+			cmdreq.rlen = 0;
+			cmdreq.cb = NULL;
+			mipi_dsi_cmdlist_put(&cmdreq);
+
+			cur_cabc_mode = req_cabc_zoe_mode;
+			PR_DISP_INFO("set_cabc_zoe mode = %d\n", cur_cabc_mode);
+		}
+		mutex_unlock(&set_cabc_mutex);
 		return;
+	} else {
+		mutex_unlock(&set_cabc_mutex);
+		return;
+	}
 
 	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
 	mipi_dsi_cmdlist_put(&cmdreq);
+
+	cur_cabc_mode = mode;
+	mutex_unlock(&set_cabc_mutex);
 	PR_DISP_INFO("set_cabc mode = %d\n", mode);
 }
 #endif
@@ -2051,6 +2374,8 @@ static struct msm_fb_panel_data m7wl_panel_data = {
 	.on	= m7wl_lcd_on,
 	.off	= m7wl_lcd_off,
 	.set_backlight = m7wl_set_backlight,
+//	.display_on = m7wl_display_on,
+//	.display_off = m7wl_display_off,
 //	.color_enhance = m7wl_color_enhance,
 #ifdef CABC_DIMMING_SWITCH
 //	.dimming_on = m7wl_dim_on,
@@ -2202,10 +2527,12 @@ static int __init mipi_cmd_jdi_renesas_init(void)
 	display_off_cmds_count = ARRAY_SIZE(jdi_display_off_cmds);
 	backlight_cmds = samsung_cmd_backlight_cmds;
 	backlight_cmds_count = ARRAY_SIZE(samsung_cmd_backlight_cmds);
+#ifdef CABC_DIMMING_SWITCH
 	dim_on_cmds = jdi_renesas_dim_on_cmds;
 	dim_on_cmds_count = ARRAY_SIZE(jdi_renesas_dim_on_cmds);
 	dim_off_cmds = jdi_renesas_dim_off_cmds;
 	dim_off_cmds_count = ARRAY_SIZE(jdi_renesas_dim_off_cmds);
+#endif
 	color_en_on_cmds = sharp_renesas_c1_color_enhance_on_cmds;
 	color_en_on_cmds_count = ARRAY_SIZE(sharp_renesas_c1_color_enhance_on_cmds);
 	color_en_off_cmds = sharp_renesas_c1_color_enhance_off_cmds;
@@ -2217,10 +2544,14 @@ static int __init mipi_cmd_jdi_renesas_init(void)
 	set_cabc_UI_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_UI_cmds);
 	set_cabc_Video_cmds = sharp_renesas_set_cabc_Video_cmds;
 	set_cabc_Video_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_Video_cmds);
+	set_cabc_Camera_cmds = sharp_renesas_set_cabc_Video_cmds;
+	set_cabc_Camera_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_Video_cmds);
 #endif
+	mdp_gamma = mdp_gamma_renesas;
+	mdp_gamma_count = ARRAY_SIZE(mdp_gamma_renesas);
 
 	pwm_min = 6;
-	pwm_default = 84;
+	pwm_default = 69;
 	pwm_max = 255;
 
 	PR_DISP_INFO("%s\n", __func__);
@@ -2305,10 +2636,12 @@ static int __init mipi_cmd_sharp_init(void)
 	display_off_cmds_count = ARRAY_SIZE(sharp_display_off_cmds);
 	backlight_cmds = sharp_cmd_backlight_cmds;
 	backlight_cmds_count = ARRAY_SIZE(sharp_cmd_backlight_cmds);
+#ifdef CABC_DIMMING_SWITCH
 	dim_on_cmds = sharp_cmd_dim_on_cmds;
 	dim_on_cmds_count = ARRAY_SIZE(sharp_cmd_dim_on_cmds);
 	dim_off_cmds = sharp_cmd_dim_off_cmds;
 	dim_off_cmds_count = ARRAY_SIZE(sharp_cmd_dim_off_cmds);
+#endif
 	color_en_on_cmds = sharp_renesas_c1_color_enhance_on_cmds;
 	color_en_on_cmds_count = ARRAY_SIZE(sharp_renesas_c1_color_enhance_on_cmds);
 	color_en_off_cmds = sharp_renesas_c1_color_enhance_off_cmds;
@@ -2320,10 +2653,14 @@ static int __init mipi_cmd_sharp_init(void)
 	set_cabc_UI_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_UI_cmds);
 	set_cabc_Video_cmds = sharp_renesas_set_cabc_Video_cmds;
 	set_cabc_Video_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_Video_cmds);
+	set_cabc_Camera_cmds = sharp_renesas_set_cabc_Video_cmds;
+	set_cabc_Camera_cmds_count = ARRAY_SIZE(sharp_renesas_set_cabc_Video_cmds);
 #endif
+	mdp_gamma = mdp_gamma_renesas;
+	mdp_gamma_count = ARRAY_SIZE(mdp_gamma_renesas);
 
 	pwm_min = 6;
-	pwm_default = 84;
+	pwm_default = 69;
 	pwm_max = 255;
 
 	PR_DISP_INFO("%s\n", __func__);
@@ -2413,10 +2750,12 @@ static int __init mipi_video_sharp_init(void)
 	display_off_cmds_count = ARRAY_SIZE(sharp_display_off_cmds);
 	backlight_cmds = renesas_cmd_backlight_cmds;
 	backlight_cmds_count = ARRAY_SIZE(renesas_cmd_backlight_cmds);
+#ifdef CABC_DIMMING_SWITCH
 	dim_on_cmds = renesas_dim_on_cmds;
 	dim_on_cmds_count = ARRAY_SIZE(renesas_dim_on_cmds);
 	dim_off_cmds = renesas_dim_off_cmds;
 	dim_off_cmds_count = ARRAY_SIZE(renesas_dim_off_cmds);
+#endif
 	color_en_on_cmds = sharp_renesas_color_enhance_on_cmds;
 	color_en_on_cmds_count = ARRAY_SIZE(sharp_renesas_color_enhance_on_cmds);
 	color_en_off_cmds = sharp_renesas_color_enhance_off_cmds;
@@ -2504,10 +2843,12 @@ static int __init mipi_video_sony_init(void)
 	display_off_cmds_count = ARRAY_SIZE(sony_display_off_cmds);
 	backlight_cmds = renesas_cmd_backlight_cmds;
 	backlight_cmds_count = ARRAY_SIZE(renesas_cmd_backlight_cmds);
+#ifdef CABC_DIMMING_SWITCH
 	dim_on_cmds = renesas_dim_on_cmds;
 	dim_on_cmds_count = ARRAY_SIZE(renesas_dim_on_cmds);
 	dim_off_cmds = renesas_dim_off_cmds;
 	dim_off_cmds_count = ARRAY_SIZE(renesas_dim_off_cmds);
+#endif
 	color_en_on_cmds = NULL;
 	color_en_on_cmds_count = 0;
 	color_en_off_cmds = NULL;
@@ -2615,14 +2956,13 @@ static int __init mipi_command_samsung_init(void)
 		cmd_on_cmds_count = ARRAY_SIZE(samsung_jdi_panel_cmd_mode_cmds_c2_1);
 		backlight_cmds = samsung_cmd_backlight_cmds;
 		backlight_cmds_count = ARRAY_SIZE(samsung_cmd_backlight_cmds);
-
-		sre_ctrl_cmds = jdi_samsung_sre_ctrl_cmds;
-		sre_ctrl_cmds_count = ARRAY_SIZE(jdi_samsung_sre1_ctrl_cmds);
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 		set_cabc_UI_cmds = jdi_samsung_set_cabc_UI_cmds;
 		set_cabc_UI_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_UI_cmds);
-		set_cabc_Video_cmds = jdi_samsung_set_cabc_Video_cmds;
-		set_cabc_Video_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_Video_cmds);
+		set_cabc_Video_cmds = jdi_samsung_set_cabc_UI_cmds;
+		set_cabc_Video_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_UI_cmds);
+		set_cabc_Camera_cmds = jdi_samsung_set_cabc_Video_cmds;
+		set_cabc_Camera_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_Video_cmds);
 #endif
 	} else {
 		strncat(ptype, "PANEL_ID_M7_JDI_SAMSUNG_C2_2", ptype_len);
@@ -2630,13 +2970,13 @@ static int __init mipi_command_samsung_init(void)
 		cmd_on_cmds_count = ARRAY_SIZE(samsung_jdi_panel_cmd_mode_cmds_c2_2);
 		backlight_cmds = samsung_cmd_backlight_cmds;
 		backlight_cmds_count = ARRAY_SIZE(samsung_cmd_backlight_cmds);
-		sre_ctrl_cmds = jdi_samsung_sre_ctrl_cmds;
-		sre_ctrl_cmds_count = ARRAY_SIZE(jdi_samsung_sre1_ctrl_cmds);
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 		set_cabc_UI_cmds = jdi_samsung_set_cabc_UI_cmds;
 		set_cabc_UI_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_UI_cmds);
-		set_cabc_Video_cmds = jdi_samsung_set_cabc_Video_cmds;
-		set_cabc_Video_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_Video_cmds);
+		set_cabc_Video_cmds = jdi_samsung_set_cabc_UI_cmds;
+		set_cabc_Video_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_UI_cmds);
+		set_cabc_Camera_cmds = jdi_samsung_set_cabc_Video_cmds;
+		set_cabc_Camera_cmds_count = ARRAY_SIZE(jdi_samsung_set_cabc_Video_cmds);
 #endif
 	}
 
@@ -2644,17 +2984,19 @@ static int __init mipi_command_samsung_init(void)
 	display_on_cmds_count = ARRAY_SIZE(samsung_display_on_cmds);
 	display_off_cmds = samsung_display_off_cmds;
 	display_off_cmds_count = ARRAY_SIZE(samsung_display_off_cmds);
+#ifdef CABC_DIMMING_SWITCH
 	dim_on_cmds = samsung_dim_on_cmds;
 	dim_on_cmds_count = ARRAY_SIZE(samsung_dim_on_cmds);
 	dim_off_cmds = samsung_dim_off_cmds;
 	dim_off_cmds_count = ARRAY_SIZE(samsung_dim_off_cmds);
+#endif
 	color_en_on_cmds = samsung_color_enhance_on_cmds;
 	color_en_on_cmds_count = ARRAY_SIZE(samsung_color_enhance_on_cmds);
 	color_en_off_cmds = samsung_color_enhance_off_cmds;
 	color_en_off_cmds_count = ARRAY_SIZE(samsung_color_enhance_on_cmds);
 
 	pwm_min = 6;
-	pwm_default = 81;
+	pwm_default = 69;
 	pwm_max = 255;
 
 	PR_DISP_INFO("%s\n", __func__);
@@ -2765,8 +3107,12 @@ static int __init m7wl_panel_init(void)
 	pwmic_ver = i2c_smbus_read_byte_data(blk_pwm_client, 0x1f);
 	PR_DISP_INFO("%s: PWM IC version A%d\n", __func__, pwmic_ver);
 
+#ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
+	mutex_init(&set_cabc_mutex);
+#endif
 	PR_DISP_INFO("%s\n", __func__);
 
 	return platform_driver_register(&this_driver);
 }
 device_initcall_sync(m7wl_panel_init);
+

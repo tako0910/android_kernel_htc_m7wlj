@@ -106,6 +106,10 @@ struct workqueue_struct *ssr_wq;
 static int crashed_modem;
 #endif
 
+#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+int mdm_is_in_restart = 0;
+#endif 
+
 static LIST_HEAD(restart_log_list);
 static LIST_HEAD(subsystem_list);
 static DEFINE_SPINLOCK(subsystem_list_lock);
@@ -185,6 +189,12 @@ int get_restart_level()
 	return restart_level;
 }
 EXPORT_SYMBOL(get_restart_level);
+
+int get_enable_ramdumps()
+{
+	return enable_ramdumps;
+}
+EXPORT_SYMBOL(get_enable_ramdumps);
 
 static int restart_level_set(const char *val, struct kernel_param *kp)
 {
@@ -411,6 +421,20 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	pr_debug("[%p]: Starting restart sequence for %s\n", current,
 			r_work->subsys->name);
 
+	
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	for (i = 0; i < restart_list_count; i++) {
+		if (!restart_list[i])
+			continue;
+
+		if (strcmp(restart_list[i]->name, EXTERNAL_MODEM) == 0) {
+			mdm_is_in_restart = 1;
+			pr_debug("[%s]: mdm_is_in_restart=%d\n", __func__, mdm_is_in_restart);
+		}
+	}
+	#endif 
+	
+
 	_send_notification_to_order(restart_list,
 				restart_list_count,
 				SUBSYS_BEFORE_SHUTDOWN);
@@ -469,6 +493,20 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	pr_info("[%p]: Restart sequence for %s completed.\n",
 			current, r_work->subsys->name);
 
+	
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	for (i = 0; i < restart_list_count; i++) {
+		if (!restart_list[i])
+			continue;
+
+		if (strcmp(restart_list[i]->name, EXTERNAL_MODEM) == 0) {
+			mdm_is_in_restart = 0;
+			pr_debug("[%s]: mdm_is_in_restart=%d\n", __func__, mdm_is_in_restart);
+		}
+	}
+	#endif 
+	
+
 #ifdef CONFIG_QSC_MODEM
 	crashed_modem = 0;
 #endif
@@ -526,20 +564,6 @@ int subsystem_restart(const char *subsys_name)
 		pr_err("Invalid subsystem name.\n");
 		return -EINVAL;
 	}
-
-	
-	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
-	if (strcmp(subsys_name, EXTERNAL_MODEM) == 0) {
-		if (!ehci_hsic_is_2nd_enum_done()) {
-			pr_err("%s: 2nd enum is not done !!!\n", __func__);
-			return -EINVAL;
-		}
-		else {
-			pr_info("%s: 2nd enum is done\n", __func__);
-		}
-	}
-	#endif 
-	
 
 #ifdef CONFIG_QSC_MODEM
 	if(strcmp(subsys_name, "external_modem") == 0){

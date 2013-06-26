@@ -80,11 +80,6 @@ static ssize_t htc_monitor_param_set(struct device *dev,
 			htc_monitor_param = 1;
 			pr_info(" htc_monitor_param: %d\n",  htc_monitor_param);
 			record_probe_data_fp = record_probe_data;
-			
-#if defined(CONFIG_USB_EHCI_HCD) && defined(CONFIG_USB_EHCI_MSM_HSIC)
-			set_htc_monitor_resume_state_fp = set_htc_monitor_resume_state;
-#endif
-			
 		}
 	}
 

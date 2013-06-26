@@ -484,7 +484,7 @@ static int wl_android_scansuppress(struct net_device *net, char *command, int to
 extern s32 wl_cfg80211_scan_abort(struct net_device *ndev);
 static int wl_android_scanabort(struct net_device *net, char *command, int total_len)
 {
-
+	wldev_set_scanabort(net);
     wl_cfg80211_scan_abort(net);
     return 0;
 }
