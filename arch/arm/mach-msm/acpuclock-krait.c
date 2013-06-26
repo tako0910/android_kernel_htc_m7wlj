@@ -890,7 +890,7 @@ static void __init bus_init(const struct l2_level *l2_level)
 
 #define USERCONTROL_MIN_VDD		 750
 #define USERCONTROL_MAX_VDD		1300
-#define NUM_FREQS			15
+#define NUM_FREQS			14
 
 ssize_t acpuclk_get_vdd_levels_str(char *buf) {
 
