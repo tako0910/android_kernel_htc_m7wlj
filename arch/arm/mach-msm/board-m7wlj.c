@@ -6499,6 +6499,17 @@ static void __init m7wlj_cdp_init(void)
 #ifdef CONFIG_MSM_CAMERA
 	m7wlj_init_cam();
 #endif
+
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
+        if(!cpu_is_krait_v1())
+                set_two_phase_freq(1134000);
+	set_input_event_min_freq_by_cpu(1, 1134000);
+	set_input_event_min_freq_by_cpu(2, 1026000);
+	set_input_event_min_freq_by_cpu(3, 810000);
+	set_input_event_min_freq_by_cpu(4, 810000);
+
+#endif	
+	
 	if (!(board_mfg_mode() == 6 || board_mfg_mode() == 7))
 		m7wl_add_usb_devices();
 }
