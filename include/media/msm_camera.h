@@ -649,6 +649,28 @@ struct stats_buff {
 	int fd;
 };
 
+struct stats_htc_af_input {
+	int preview_width;
+	int preview_height;
+	int roi_x;
+	int roi_y;
+	int roi_width;
+	int roi_height;
+	uint8_t af_use_sw_sharpness;
+};
+
+struct stats_htc_af_output {
+	uint32_t hw_frame_id;
+	uint32_t sw_frame_id;
+	uint32_t actuator_frame_id;
+	uint32_t sw_sharpness_value;
+};
+
+struct stats_htc_af {
+	struct stats_htc_af_input af_input;
+	struct stats_htc_af_output af_output;
+};
+
 struct msm_stats_buf {
 	uint8_t awb_ymin;
 	struct stats_buff aec;
@@ -665,6 +687,7 @@ struct msm_stats_buf {
 	int length;
 	struct ion_handle *handle;
 	uint32_t frame_id;
+	struct stats_htc_af htc_af_info;
 };
 #define MSM_V4L2_EXT_CAPTURE_MODE_DEFAULT 0
 #define MSM_V4L2_EXT_CAPTURE_MODE_PREVIEW \
@@ -1121,6 +1144,7 @@ enum msm_sensor_resolution_t {
 	MSM_SENSOR_RES_VIDEO_HFR_5_3,
 	MSM_SENSOR_RES_5_3,
 	MSM_SENSOR_RES_ZOE,
+	MSM_SENSOR_RES_VIDEO_60FPS,
 	MSM_SENSOR_RES_2,
 	MSM_SENSOR_RES_3,
 	MSM_SENSOR_RES_4,
@@ -1150,6 +1174,9 @@ struct msm_sensor_output_info_t {
 	uint8_t binning_rawchip;
 	uint8_t is_hdr;
 	
+	uint8_t yushan_status_line_enable;
+	uint8_t yushan_status_line; 
+	uint8_t yushan_sensor_status_line; 
 };
 
 struct sensor_output_info_t {
@@ -1287,6 +1314,7 @@ typedef struct{
 	uint8_t VCM_BOTTOM_MECH_LSB;
 	uint8_t VCM_TOP_MECH_MSB;
 	uint8_t VCM_TOP_MECH_LSB;
+	uint8_t VCM_VENDOR_ID_VERSION;
 	
 	uint8_t VCM_VENDOR;
 	uint8_t ACT_ID;
@@ -1512,6 +1540,15 @@ struct msm_actuator_get_ois_cal_info_t {
 	int8_t cal_method;
 	int8_t cal_current_point;
 	int8_t cal_max_point;
+	int8_t bypass_ois_cal;
+};
+
+struct msm_actuator_get_vcm_cal_info_t {
+    uint8_t offset;
+    uint8_t bias;
+    uint16_t hall_max;
+    uint16_t hall_min;
+    uint8_t rc;
 };
 
 struct msm_actuator_get_vcm_cal_info_t {
@@ -1552,6 +1589,7 @@ struct msm_actuator_af_OTP_info_t {
 	uint8_t VCM_Offset;
 	uint16_t VCM_Bottom_Mech;
 	uint16_t VCM_Top_Mech;
+	uint8_t VCM_Vendor_Id_Version;
 	
 	uint8_t VCM_Vendor;
 	uint8_t act_id;

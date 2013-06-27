@@ -1943,6 +1943,11 @@ static int msm_open(struct file *f)
 		}
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+		if (pmctl->client) {
+			pr_info("%s: pmctl->client(%p) not null\n", __func__, (void*)(pmctl->client));
+			ion_client_destroy(pmctl->client);
+			pmctl->client = NULL;
+		}
 		{
 			char ion_debug_name[64];
 			snprintf(ion_debug_name, 64, "%u", task_pid_nr(current->group_leader));

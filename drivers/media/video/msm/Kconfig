@@ -367,6 +367,7 @@ config TI201_ACT
 config ACT_OIS_BINDER
        bool "Act_Ois_Binder"
        depends on MSM_CAMERA
+       default n
        ---help---
          Act_Ois_Binder for OIS function through ti201 lens actuator driver.
 
@@ -440,4 +441,11 @@ config VD6869
 	default n
 	---help---
 	ST 4MP Bayer Sensor
+
+config OV4688
+	bool "Sensor ov4688 (BAYER 4M)"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	ov 4MP Bayer Sensor
 

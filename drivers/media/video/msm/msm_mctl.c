@@ -1012,6 +1012,11 @@ int msm_mctl_init(struct msm_cam_v4l2_device *pcam)
 	pmctl->sdata = pcam->sdata;
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+	if (pmctl->client) {
+		pr_info("%s: pmctl->client(%p) not null\n", __func__, (void*)(pmctl->client));
+		ion_client_destroy(pmctl->client);
+		pmctl->client = NULL;
+	}
 	pmctl->client = msm_ion_client_create(-1, "camera");
 	kref_init(&pmctl->refcount);
 #endif
