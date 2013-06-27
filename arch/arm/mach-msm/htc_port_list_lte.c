@@ -152,6 +152,7 @@ static struct p_list *add_list(int no)
 	struct list_head *listptr;
 	struct p_list *entry;
 	int get_list = 0;
+	ptr = 0;
 
 	if ( htc_port_list_init_success == 0 )
 		return 0;
