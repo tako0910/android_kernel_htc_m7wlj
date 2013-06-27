@@ -279,6 +279,7 @@ struct msm_cam_media_controller {
 #ifdef CONFIG_PERFLOCK
 	struct perf_lock *cam_perf_lock;
 #endif
+	struct stats_htc_af htc_af_info;
 };
 
 struct msm_isp_ops {
@@ -507,6 +508,10 @@ unsigned long msm_pmem_stats_vtop_lookup(
 				unsigned long buffer,
 				int fd);
 unsigned long msm_pmem_stats_ptov_lookup(
+	struct msm_cam_media_controller *mctl,
+	unsigned long addr, int *fd);
+
+unsigned long msm_pmem_stats_ptov_lookup_2(
 	struct msm_cam_media_controller *mctl,
 	unsigned long addr, int *fd);
 
