@@ -578,7 +578,7 @@ unsigned long acpuclk_krait_power_collapse(void)
 }
 #endif
 
-static void __init hfpll_init(struct scalable *sc,
+static void __cpuinit hfpll_init(struct scalable *sc,
 			      const struct core_speed *tgt_s)
 {
 	dev_dbg(drv.dev, "Initializing HFPLL%d\n", sc - drv.scalable);
