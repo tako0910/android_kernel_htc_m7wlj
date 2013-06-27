@@ -2423,3 +2423,8 @@ void	SetH1cMod( unsigned char	UcSetNum )
 	}
 }
 #endif
+
+unsigned short	RdFwVr( void )
+{
+	return( FW_VER ) ;
+}

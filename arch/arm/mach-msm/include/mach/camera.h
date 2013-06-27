@@ -504,6 +504,7 @@ struct msm_pmem_region {
 	struct file *file;
 	struct msm_pmem_info info;
 	struct ion_handle *handle;
+	unsigned long vaddr;
 };
 
 struct axidata {

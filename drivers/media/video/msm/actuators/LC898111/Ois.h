@@ -1,4 +1,4 @@
-#define	FW_VER			0x0004
+#define	FW_VER			0x0005
 #define StAdjPar StAdjPar_lc898111
 #define UsStpSiz UsStpSiz_lc898111
 
@@ -448,3 +448,4 @@ OISCMD__ void			SetGcf( unsigned char ) ;
  #define		CHGCOEF		0xB92FA5DE
  #define		S2COEF		0x3F800000				
 #endif
+unsigned short	RdFwVr( void ) ;													
