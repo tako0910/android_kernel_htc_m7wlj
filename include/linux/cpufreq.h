@@ -208,11 +208,9 @@ void cpufreq_unregister_governor(struct cpufreq_governor *governor);
 int lock_policy_rwsem_write(int cpu);
 void unlock_policy_rwsem_write(int cpu);
 
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND
-extern void ondemand_boost_cpu(int boost);
-#endif
-
-
+/*********************************************************************
+ *                      CPUFREQ DRIVER INTERFACE                     *
+ *********************************************************************/
 
 #define CPUFREQ_RELATION_L 0  /* lowest frequency at or above target */
 #define CPUFREQ_RELATION_H 1  /* highest frequency below or at target */
@@ -377,9 +375,9 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
-#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_WHEATLEY)
-extern struct cpufreq_governor cpufreq_gov_wheatley;
-#define CPUFREQ_DEFAULT_GOVERNOR  (&cpufreq_gov_wheatley)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SMARTMAX)
+extern struct cpufreq_governor cpufreq_gov_smartmax;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_smartmax)
 #endif
 
 
@@ -420,6 +418,11 @@ void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table,
 				      unsigned int cpu);
 
 void cpufreq_frequency_table_put_attr(unsigned int cpu);
+/* hooks to scale interactive tunables based on load */
+extern void scale_above_hispeed_delay(unsigned int above_hispeed_delay);
+extern void scale_go_hispeed_load(unsigned int go_hispeed_load);
+extern void scale_timer_rate(unsigned int timer_rate);
+extern void scale_min_sample_time(unsigned int min_sample_time);
 
 
 #endif /* _LINUX_CPUFREQ_H */
