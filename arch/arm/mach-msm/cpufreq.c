@@ -384,7 +384,7 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
  */
 static int msm_cpufreq_suspend(struct cpufreq_policy *policy)
 {
-	unsigned int cpu = (unsigned long)hcpu;
+	int cpu;
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_suspend, cpu).device_suspended = 1;
@@ -398,7 +398,7 @@ static int msm_cpufreq_resume(struct cpufreq_policy *policy)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		per_cpu(cpufreq_suspend, cpu).device_suspended = 1;
+		per_cpu(cpufreq_suspend, cpu).device_suspended = 0;
 	}
 
 	return 0;
