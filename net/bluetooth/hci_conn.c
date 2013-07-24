@@ -395,7 +395,7 @@ EXPORT_SYMBOL(hci_le_start_enc);
 
 #define LTK_SIZE 16
 
-void hci_le_ltk_reply(struct hci_conn *conn, u8 __ltk[LTK_SIZE])
+void hci_le_ltk_reply(struct hci_conn *conn, __u8 ltk[LTK_SIZE])
 {
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_le_ltk_reply cp;
@@ -405,7 +405,7 @@ void hci_le_ltk_reply(struct hci_conn *conn, u8 __ltk[LTK_SIZE])
 	memset(&cp, 0, sizeof(cp));
 
 	cp.handle = cpu_to_le16(conn->handle);
-	memcpy(cp.ltk, ltk, sizeof(*ltk));
+	memcpy(cp.ltk, ltk, LTK_SIZE);
 
 	hci_send_cmd(hdev, HCI_OP_LE_LTK_REPLY, sizeof(cp), &cp);
 }
