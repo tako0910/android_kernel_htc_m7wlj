@@ -42,7 +42,7 @@
 #define SNFC_LOG_WARN(fmt, args...) printk(KERN_WARNING fmt,## args)
 
 
-#define FELICA_CONFIG_ACCESS_RESTRICTION
+// #define FELICA_CONFIG_ACCESS_RESTRICTION
 
 struct felica_platform_data {
 	unsigned int int_irq;
