@@ -119,6 +119,7 @@
 #include "linux/i2c/smb349.h"
 #endif
 #ifdef CONFIG_FB_MSM_HDMI_MHL
+#include <video/msm_hdmi_modes.h>
 #include <mach/mhl.h>
 #endif
 
