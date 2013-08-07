@@ -468,59 +468,7 @@ static struct snd_soc_ops msm8960_i2s_be_ops = {
 
 static void msm_ext_spk_power_amp_on(u32 spk)
 {
-	if (spk & (RCV_AMP_POS | RCV_AMP_NEG)) {
-		if ((msm_rcv_pamp & RCV_AMP_POS) &&
-			(msm_rcv_pamp & RCV_AMP_NEG)) {
-
-			pr_debug("%s() HS Ampl already "
-				"turned on. spk = 0x%08x\n", __func__, spk);
-			return;
-		}
-
-		msm_rcv_pamp |= spk;
-
-		if ((msm_rcv_pamp & RCV_AMP_POS) &&
-			(msm_rcv_pamp & RCV_AMP_NEG)) {
-
-
-			pr_info("rcv amp on++");
-			gpio_direction_output(RCV_PAMP_GPIO, 1);
-			gpio_direction_output(PM8921_GPIO_PM_TO_SYS(RCV_SPK_SEL_PMGPIO), 1);
-			pr_info("rcv amp on--");
-
-			pr_debug("%s: slepping 4 ms after turning on external "
-				" Bottom Speaker Ampl\n", __func__);
-			usleep_range(4000, 4000);
-		}
-	} else if (spk & (HS_AMP_POS | HS_AMP_NEG)) {
-
-		if ((msm_hs_pamp & HS_AMP_POS) &&
-			(msm_hs_pamp & HS_AMP_NEG)) {
-
-			pr_debug("%s() HS Ampl already "
-				"turned on. spk = 0x%08x\n", __func__, spk);
-			return;
-		}
-
-		msm_hs_pamp |= spk;
-
-		if ((msm_hs_pamp & HS_AMP_POS) &&
-			(msm_hs_pamp & HS_AMP_NEG)) {
-			
-			pr_info("hs amp on++");
-			if (query_tpa6185()) {
-				gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 1);
-				set_handset_amp(1);
-			}
-
-			if (query_rt5501())
-				set_rt5501_amp(1);
-			pr_info("hs amp on--");
-			pr_debug("%s: slepping 4 ms after turning on external "
-				" Bottom Speaker Ampl\n", __func__);
-			usleep_range(4000, 4000);
-		}
-	} else if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG)) {
+	if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG)) {
 
 		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) &&
 			(msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG)) {
@@ -534,6 +482,17 @@ static void msm_ext_spk_power_amp_on(u32 spk)
 
 		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) &&
 			(msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG)) {
+
+			
+			pr_info("hs amp on++");
+                        if(query_tpa6185()) {
+                            gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 1);
+			    set_handset_amp(1);
+                        }
+
+                        if(query_rt5501())
+                            set_rt5501_amp(1);
+			pr_info("hs amp on--");
 			pr_debug("%s: slepping 4 ms after turning on external "
 				" Bottom Speaker Ampl\n", __func__);
 			usleep_range(4000, 4000);
@@ -595,13 +554,13 @@ static void msm_ext_spk_power_amp_off(u32 spk)
 
 		
 		pr_info("hs amp off ++");
-		if (query_tpa6185()) {
-			set_handset_amp(0);
-			gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 0);
-		}
+                if(query_tpa6185()) {
+		    set_handset_amp(0);
+                    gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 0);
+                }
 
-		if (query_rt5501())
-			set_rt5501_amp(0);
+                if(query_rt5501())
+                    set_rt5501_amp(0);
 		pr_info("hs amp off --");
 
 		msm_hs_pamp = 0;
@@ -652,6 +611,81 @@ static void msm_ext_spk_power_amp_off(u32 spk)
 			__func__, spk);
 		return;
 	}
+}
+
+static int msm_get_hac(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	pr_info("%s: msm_hac_control = %d", __func__, msm_hac_control);
+	ucontrol->value.integer.value[0] = msm_hac_control;
+	return 0;
+}
+static int msm_set_hac(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	if (msm_hac_control == ucontrol->value.integer.value[0])
+		return 0;
+
+	msm_hac_control = ucontrol->value.integer.value[0];
+	pr_info("%s()  %d\n", __func__, msm_hac_control);
+	ret = gpio_request(HAC_PAMP_GPIO, "AUDIO_HAC_AMP");
+	if (ret) {
+		pr_err("%s: Error requesting GPIO %d\n", __func__,
+			HAC_PAMP_GPIO);
+			return ret;
+		}
+		else {
+			if (msm_hac_control) {
+				pr_info("%s: enable hac amp gpio %d\n", __func__, HAC_PAMP_GPIO);
+				gpio_direction_output(HAC_PAMP_GPIO, 1);
+			} else {
+				pr_info("%s: disable hac amp gpio %d\n", __func__, HAC_PAMP_GPIO);
+				gpio_direction_output(HAC_PAMP_GPIO, 0);
+			}
+			gpio_free(HAC_PAMP_GPIO);
+		}
+	return 1;
+}
+
+static int msm_get_rcv_amp(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	pr_info("%s: msm_rcv_control = %d", __func__, msm_rcv_control);
+	ucontrol->value.integer.value[0] = msm_rcv_control;
+	return 0;
+}
+static int msm_set_rcv_amp(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+
+	if (msm_rcv_control == ucontrol->value.integer.value[0])
+		return 0;
+
+	msm_rcv_control = ucontrol->value.integer.value[0];
+	pr_info("%s()  %d\n", __func__, msm_rcv_control);
+	ret = gpio_request(RCV_PAMP_GPIO, "AUDIO_RCV_AMP");
+	if (ret) {
+		pr_err("%s: Error requesting GPIO %d\n", __func__,
+			RCV_PAMP_GPIO);
+			return ret;
+		}
+		else {
+			if (msm_rcv_control) {
+				pr_info("%s: enable rcv amp gpio %d\n", __func__, HAC_PAMP_GPIO);
+				usleep_range(20000,20000);
+				ret =gpio_direction_output(RCV_PAMP_GPIO, 1);
+				ret = gpio_direction_output(PM8921_GPIO_PM_TO_SYS(RCV_SPK_SEL_PMGPIO), 1);
+			} else {
+				pr_info("%s: disable rcv amp gpio %d\n", __func__, HAC_PAMP_GPIO);
+				gpio_direction_output(RCV_PAMP_GPIO, 0);
+				gpio_direction_output(PM8921_GPIO_PM_TO_SYS(RCV_SPK_SEL_PMGPIO), 0);
+				usleep_range(20000,20000);
+			}
+			gpio_free(RCV_PAMP_GPIO);
+		}
+	return 1;
 }
 
 static void msm_ext_control(struct snd_soc_codec *codec)
