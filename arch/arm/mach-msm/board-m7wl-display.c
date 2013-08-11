@@ -2349,7 +2349,7 @@ static struct platform_driver this_driver = {
 static struct msm_fb_panel_data m7wl_panel_data = {
 	.on	= m7wl_lcd_on,
 	.off	= m7wl_lcd_off,
-	.set_backlight = m7_set_backlight,
+	.set_backlight = m7wl_set_backlight,
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 	.set_cabc = m7wl_set_cabc,
 #endif
