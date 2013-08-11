@@ -1551,14 +1551,6 @@ struct msm_actuator_get_vcm_cal_info_t {
     uint8_t rc;
 };
 
-struct msm_actuator_get_vcm_cal_info_t {
-    uint8_t offset;
-    uint8_t bias;
-    uint16_t hall_max;
-    uint16_t hall_min;
-    uint8_t rc;
-};
-
 struct msm_flash_ois_cal_data_t {
 	
 	int16_t x_offset_sharp;
