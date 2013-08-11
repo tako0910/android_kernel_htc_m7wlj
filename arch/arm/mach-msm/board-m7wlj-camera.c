@@ -33,16 +33,6 @@ void m7wlj_vcm_vreg_on(void);
 void m7wlj_vcm_vreg_off(void);
 #endif
 
-#ifdef pr_err
-#undef pr_err
-#endif
-#define pr_err(fmt, args...) \
-        printk(KERN_ERR "[CAM][ERR] " pr_fmt(fmt), ## args)
-
-#ifdef pr_info
-#undef pr_info
-#endif
-
 #define CAM_PIN_PMGPIO_V_RAW_1V2_EN	0
 #define CAM_PIN_GPIO_V_CAM_D1V2_EN_XA	V_CAM_D1V2_EN_XA
 #define CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB	PM8921_GPIO_PM_TO_SYS(V_CAM_D1V2_EN)
@@ -68,6 +58,8 @@ void m7wlj_vcm_vreg_off(void);
 #define CAM_PIN_GPIO_CAM2_RSTz	CAM2_RSTz
 
 #define CAM_PIN_CAMERA_ID PM8921_GPIO_PM_TO_SYS(MAIN_CAM_ID)
+#define CAM_PIN_FRONT_CAMERA_ID PM8921_GPIO_PM_TO_SYS(FRONT_CAM_ID)
+
 #define MSM_8960_GSBI4_QUP_I2C_BUS_ID 4	
 
 extern unsigned int system_rev;
@@ -94,9 +86,7 @@ static struct msm_camera_sensor_info msm_camera_sensor_ar0260_data;
 #if defined(CONFIG_OV2722)
 static struct msm_camera_sensor_info msm_camera_sensor_ov2722_data;
 #endif
-#if defined(CONFIG_OV4688)
-static struct msm_camera_sensor_info msm_camera_sensor_ov4688_data;
-#endif
+
 
 static struct gpiomux_setting cam_settings[] = {
 	{
@@ -475,7 +465,7 @@ struct msm_camera_device_platform_data m7wlj_msm_camera_csi_device_data[] = {
 };
 
 #ifdef CONFIG_MSM_CAMERA_FLASH
-#if defined(CONFIG_IMX175) || defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_IMX091) || defined(CONFIG_S5K3H2YX) || defined(CONFIG_OV4688)
+#if defined(CONFIG_IMX175) || defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_IMX091) || defined(CONFIG_S5K3H2YX)
 int m7wlj_flashlight_control(int mode)
 {
 pr_info("%s, linear led, mode=%d", __func__, mode);
@@ -496,33 +486,7 @@ static struct msm_camera_sensor_flash_src msm_camera_flash_src = {
 
 #if defined(CONFIG_RAWCHIPII) || defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_AR0260) || defined(CONFIG_OV2722)
 static struct regulator *reg_8921_lvs1;
-#if defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_AR0260) || defined(CONFIG_OV2722) || defined(CONFIG_OV4688)
-static struct regulator *reg_8921_lvs4;
 #endif
-
-static struct regulator *reg_8921_l2;
-#if defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_AR0260) || defined(CONFIG_OV2722) || defined(CONFIG_RAWCHIPII)|| defined(CONFIG_OV4688)
-static struct regulator *reg_8921_l8;
-static struct regulator *reg_8921_l9;
-static struct regulator *reg_8921_l12;
-static struct regulator *reg_8921_s2;
-
-#endif
-
-int gpio_set(int gpio,int enable)
-{
-	int rc = 0;
-	gpio_tlmm_config(GPIO_CFG(gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	rc = gpio_request(gpio, "gpio");
-	if (rc < 0) {
-		pr_err("set gpio(%d) fail", gpio);
-	    return rc;
-	}
-	gpio_direction_output(gpio, enable);
-	gpio_free(gpio);
-
-	return rc;
-}
 
 static int camera_sensor_power_enable(char *power, unsigned volt, struct regulator **sensor_power)
 {
@@ -597,12 +561,6 @@ int check_yushanII_flag(void)
 	}
 #endif
 
-#if defined(CONFIG_OV4688)
-	if (msm_camera_sensor_ov4688_data.htc_image == HTC_CAMERA_IMAGE_NONE_BOARD) {
-		pr_info("check_yushanII_flag() , NO yushanII , ov4688 htc_image=%d\n", msm_camera_sensor_ov4688_data.htc_image);
-		return 0;
-	}
-#endif
 	pr_info("check_yushanII_flag() , With yushanII\n");
 	return 1;
 }
@@ -763,19 +721,6 @@ static uint16_t vd6869_back_cam_gpio[] = {
 };
 #endif
 
-#ifdef CONFIG_OV4688
-static uint16_t ov4688_back_cam_gpio[] = {
-	CAM_PIN_GPIO_CAM_MCLK0, 
-	CAM_PIN_GPIO_RAW_INTR0,
-	CAM_PIN_GPIO_RAW_INTR1,
-	CAM_PIN_GPIO_MCAM_SPI_CLK,
-	CAM_PIN_GPIO_MCAM_SPI_CS0,
-	CAM_PIN_GPIO_MCAM_SPI_DI,
-	CAM_PIN_GPIO_MCAM_SPI_DO,
-};
-
-#endif
-
 #if defined(CONFIG_IMX091) || defined(CONFIG_S5K3H2YX) || defined(CONFIG_S5K6A1GX)
 static struct msm_camera_gpio_conf gpio_conf = {
 	.cam_gpiomux_conf_tbl = NULL,
@@ -830,13 +775,12 @@ static struct msm_camera_gpio_conf vd6869_back_cam_gpio_conf = {
 };
 #endif
 
-#ifdef CONFIG_OV4688
-static struct msm_camera_gpio_conf ov4688_back_cam_gpio_conf = {
-	.cam_gpiomux_conf_tbl = NULL,
-	.cam_gpiomux_conf_tbl_size = 0,
-	.cam_gpio_tbl = ov4688_back_cam_gpio,
-	.cam_gpio_tbl_size = ARRAY_SIZE(ov4688_back_cam_gpio),
-};
+static struct regulator *reg_8921_l2;
+static struct regulator *reg_8921_lvs4;
+#if defined(CONFIG_IMX135) || defined(CONFIG_VD6869) || defined(CONFIG_AR0260) || defined(CONFIG_OV2722)
+static struct regulator *reg_8921_l8;
+static struct regulator *reg_8921_l9;
+static struct regulator *reg_8921_l23;
 #endif
 
 static int m7wlj_csi_vreg_on(void)
@@ -854,11 +798,6 @@ static int m7wlj_csi_vreg_off(void)
 static void update_yushanII_flag(enum htc_camera_image_type_board htc_image)
 {
 	pr_info("update_yushanII_flag() , htc_image=%d\n", htc_image);
-
-#if defined(CONFIG_OV4688)
-	msm_camera_sensor_ov4688_data.htc_image = htc_image;
-	msm_camera_sensor_ov4688_data.video_hdr_capability &= msm_camera_sensor_ov4688_data.htc_image;
-#endif
 
 #if defined(CONFIG_VD6869)
 	msm_camera_sensor_vd6869_data.htc_image = htc_image;
@@ -902,7 +841,7 @@ static struct msm_actuator_info ad5823_actuator_info = {
 #endif
 
 #if defined(CONFIG_TI201_ACT)
-#if (defined(CONFIG_IMX175) || defined(CONFIG_IMX091) || defined(CONFIG_VD6869))
+#if (defined(CONFIG_IMX175) || defined(CONFIG_IMX091)|| defined(CONFIG_VD6869))
 static struct i2c_board_info ti201_actuator_i2c_info = {
 	I2C_BOARD_INFO("ti201_act", 0x1C),
 };
@@ -948,24 +887,11 @@ static struct msm_actuator_info rumbas_actuator_info = {
 	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
 	.vcm_pwd        = CAM_PIN_GPIO_CAM_VCM_PD,
 	.vcm_enable     = 1,
-	.otp_diviation	= 85,
+	.otp_diviation = 75,
 #if defined(CONFIG_RUMBAS_ACT)
 	.vcm_wa_vreg_on = m7wlj_vcm_vreg_on,
 	.vcm_wa_vreg_off = m7wlj_vcm_vreg_off,
 #endif
-};
-#endif
-
-#ifdef CONFIG_LC898212_ACT
-static struct i2c_board_info lc898212_actuator_i2c_info = {
-	I2C_BOARD_INFO("lc898212_act", 0x11),
-};
-
-static struct msm_actuator_info lc898212_actuator_info = {
-	.board_info     = &lc898212_actuator_i2c_info,
-	.bus_id         = APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-	.vcm_pwd        = CAM_PIN_GPIO_CAM_VCM_PD,
-	.vcm_enable     = 1,
 };
 #endif
 
@@ -1429,6 +1355,17 @@ static int m7wlj_imx135_vreg_on(void)
 	gpio_free(gpio_cam_d1v2_en);
 	mdelay(5);
 
+	
+	pr_info("%s: 8921_l9 2800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_l9", 2800000, &reg_8921_l9);
+	pr_info("%s: 8921_l9 2800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_l9\", 2.8V) FAILED %d\n", rc);
+		goto enable_vcm_fail;
+	}
+	mdelay(1);
+
 	return rc;
 
 
@@ -1456,11 +1393,14 @@ static int m7wlj_imx135_vreg_off(void)
 	pr_info("%s\n", __func__);
 
 	
-	if (system_rev == 0) { 
-		gpio_cam_d1v2_en = CAM_PIN_GPIO_V_CAM_D1V2_EN_XA;
-	} else  { 
-		gpio_cam_d1v2_en = CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB;
-	}
+	pr_info("%s: 8921_l9 off\n", __func__);
+	rc = camera_sensor_power_disable(reg_8921_l9);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_l9\") FAILED %d\n", rc);
+
+	
+	gpio_cam_d1v2_en = CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB;
 	rc = gpio_request(gpio_cam_d1v2_en, "CAM_D1V2_EN");
 	if (rc < 0)
 		pr_err("sensor_power_disable\
@@ -1686,48 +1626,10 @@ static int m7wlj_vd6869_vreg_on(void)
 	int gpio_cam_d1v2_en=0;
 	pr_info("%s\n", __func__);
 
-	
-	if (system_rev <= 1) { 
-		rc = gpio_request(CAM_PIN_GPIO_V_RAW_1V8_EN, "V_RAW_1V8_EN");
-		pr_info("I/O 1v8 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_V_RAW_1V8_EN, rc);
-		if (rc) {
-			pr_err("I/O 1v8 on\
-				(\"gpio %d\", 1.8V) FAILED %d\n",
-				CAM_PIN_GPIO_V_RAW_1V8_EN, rc);
-			goto enable_io_fail;
-		}
-		gpio_direction_output(CAM_PIN_GPIO_V_RAW_1V8_EN, 1);
-		gpio_free(CAM_PIN_GPIO_V_RAW_1V8_EN);
-	} else { 
-		if (check_yushanII_flag() == 0) {
-			pr_info("%s: 8921_lvs1 1800000\n", __func__);
-			rc = camera_sensor_power_enable("8921_lvs1", 1800000, &reg_8921_lvs1);
-			pr_info("%s: 8921_lvs1 1800000 (%d)\n", __func__, rc);
-			if (rc < 0) {
-				pr_err("sensor_power_enable\
-					(\"8921_lvs1\", 1.8V) FAILED %d\n", rc);
-				goto enable_io_fail;
-			}
-		}
-	}
-	mdelay(5);
-
-	if (system_rev == 1) { 
-		rc = gpio_request(CAM_PIN_GPIO_V_CAM_1V8_EN, "V_CAM_1V8_EN");
-		pr_info("I/O 1v8 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-		if (rc) {
-			pr_err("I/O 1v8 on\
-				(\"gpio %d\", 1.8V) FAILED %d\n",
-				CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-			goto enable_io_fail_2;
-		}
-		gpio_direction_output(CAM_PIN_GPIO_V_CAM_1V8_EN, 1);
-		gpio_free(CAM_PIN_GPIO_V_CAM_1V8_EN);
-		mdelay(5);
-	} else if (system_rev >= 2) { 
-		pr_info("%s: 8921_lvs4 1800000\n", __func__);
-		rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
-		pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
+	if (check_yushanII_flag() == 0) {
+		pr_info("%s: 8921_lvs1 1800000\n", __func__);
+		rc = camera_sensor_power_enable("8921_lvs1", 1800000, &reg_8921_lvs1);
+		pr_info("%s: 8921_lvs1 1800000 (%d)\n", __func__, rc);
 		if (rc < 0) {
 			pr_err("sensor_power_enable\
 				(\"8921_lvs1\", 1.8V) FAILED %d\n", rc);
@@ -1789,6 +1691,13 @@ static int m7wlj_vd6869_vreg_on(void)
 	rc = camera_sensor_power_enable("8921_l9", 2850000, &reg_8921_l9);
 	pr_info("%s: 8921_l9 2800000 (%d)\n", __func__, rc);
 
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_l9\", 3.1V) FAILED %d\n", rc);
+		goto enable_vcm_fail;
+	}
+	mdelay(1);
+
 	return rc;
 
 
@@ -1809,46 +1718,12 @@ enable_digital_fail:
 enable_analog_fail:
 	camera_sensor_power_disable(reg_8921_lvs4);
 enable_io_fail:
-	
-enable_vcm_fail:
-		if(system_rev > 0){
-					camera_sensor_power_disable(reg_8921_l8);
-		}
-
-enable_mclk_switch_fail:
-		
-		if (system_rev >= 1) { 
-#ifdef CONFIG_CAMERA_IMAGE_NONE_BOARD	
-			rc = gpio_request(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, "CAM_D1V2_EN");
-			if (rc < 0)
-				pr_err("sensor_power_disable\
-					(\"gpio %d\", 1.05V) FAILED %d\n",
-					CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, rc);
-			else {
-				gpio_direction_output(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, 0);
-				gpio_free(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB);
-			}
-#else
-			rc = gpio_request(CAM_PIN_GPIO_MCAM_D1V2_EN, "MCAM_D1V2_EN");
-			pr_info("I/O 1v2 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_MCAM_D1V2_EN, rc);
-			if (rc < 0)
-				pr_err("sensor_power_disable\
-					(\"gpio %d\", 1.05V) FAILED %d\n",
-					CAM_PIN_GPIO_MCAM_D1V2_EN, rc);
-			else {
-				gpio_direction_output(CAM_PIN_GPIO_MCAM_D1V2_EN, 0);
-				gpio_free(CAM_PIN_GPIO_MCAM_D1V2_EN);
-			}
-#endif
-
-		} else { 
-			pr_info("%s: 8921_l12 off\n", __func__);
-			rc = camera_sensor_power_disable(reg_8921_l12);
-			if (rc < 0)
-				pr_err("sensor_power_disable\
-					(\"8921_l12\") FAILED %d\n", rc);
-		}
-		mdelay(10);
+	camera_sensor_power_disable(reg_8921_l23);
+enable_cam2_d1v8_fail:
+	if (check_yushanII_flag() == 0) {
+		camera_sensor_power_disable(reg_8921_lvs1);
+	}
+enable_raw_1v8_fail:
 
 	return rc;
 }
@@ -1858,48 +1733,6 @@ static int m7wlj_vd6869_vreg_off(void)
 	int rc = 0;
 	int gpio_cam_d1v2_en=0;
 	pr_info("%s\n", __func__);
-
-	
-		rc = gpio_request(CAM_PIN_GPIO_CAM_SEL, "CAM_SEL");
-		pr_info("%s: CAM_PIN_GPIO_CAM_SEL (%d)\n", __func__, rc);
-		if (rc>=0) {
-			gpio_direction_output(CAM_PIN_GPIO_CAM_SEL, 0);
-			gpio_free(CAM_PIN_GPIO_CAM_SEL);
-		}
-
-	
-	if (system_rev >= 1) { 
-#ifdef CONFIG_CAMERA_IMAGE_NONE_BOARD	
-		rc = gpio_request(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, "CAM_D1V2_EN");
-		if (rc < 0)
-			pr_err("sensor_power_disable\
-				(\"gpio %d\", 1.05V) FAILED %d\n",
-				CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, rc);
-		else {
-			gpio_direction_output(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, 0);
-			gpio_free(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB);
-		}
-#else
-		rc = gpio_request(CAM_PIN_GPIO_MCAM_D1V2_EN, "MCAM_D1V2_EN");
-		pr_info("I/O 1v2 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_MCAM_D1V2_EN, rc);
-		if (rc < 0)
-			pr_err("sensor_power_disable\
-				(\"gpio %d\", 1.05V) FAILED %d\n",
-				CAM_PIN_GPIO_MCAM_D1V2_EN, rc);
-		else {
-			gpio_direction_output(CAM_PIN_GPIO_MCAM_D1V2_EN, 0);
-			gpio_free(CAM_PIN_GPIO_MCAM_D1V2_EN);
-		}
-#endif
-
-	} else { 
-		pr_info("%s: 8921_l12 off\n", __func__);
-		rc = camera_sensor_power_disable(reg_8921_l12);
-		if (rc < 0)
-			pr_err("sensor_power_disable\
-				(\"8921_l12\") FAILED %d\n", rc);
-	}
-	mdelay(10);
 
 	
 	pr_info("%s: 8921_l9 off\n", __func__);
@@ -1972,7 +1805,6 @@ static struct msm_camera_sensor_platform_info sensor_vd6869_board_info = {
 	.vcm_pwd	= CAM_PIN_GPIO_CAM_VCM_PD,
 	.vcm_enable	= 1,
 	.csi_lane_params = &vd6869_csi_lane_params,
-	.sensor_mount_angle = ANGLE_90, 
 };
 
 static struct camera_led_est msm_camera_sensor_vd6869_led_table[] = {
@@ -2090,6 +1922,7 @@ static struct camera_flash_info msm_camera_sensor_vd6869_flash_info = {
 static struct camera_flash_cfg msm_camera_sensor_vd6869_flash_cfg = {
 	.low_temp_limit		= 5,
 	.low_cap_limit		= 14,
+	.low_cap_limit_dual = 0,
 	.flash_info             = &msm_camera_sensor_vd6869_flash_info,
 };
 
@@ -2110,9 +1943,6 @@ static struct msm_actuator_info *vd6869_actuator_table[] = {
 #if defined(CONFIG_TI201_ACT)
     &ti201_actuator_info,
 #endif
-#if defined(CONFIG_LC898212_ACT)
-    &lc898212_actuator_info,
-#endif
 };
 #endif
 
@@ -2128,7 +1958,7 @@ static struct msm_camera_sensor_info msm_camera_sensor_vd6869_data = {
 	.csi_if	= 1,
 	.camera_type = BACK_CAMERA_2D,
 
-#if defined(CONFIG_RUMBAS_ACT) || defined(CONFIG_TI201_ACT) || defined(CONFIG_LC898212_ACT)
+#if defined(CONFIG_RUMBAS_ACT) || defined(CONFIG_TI201_ACT)
 	.num_actuator_info_table = ARRAY_SIZE(vd6869_actuator_table),
 	.actuator_info_table = &vd6869_actuator_table[0],
 #endif
@@ -2144,285 +1974,6 @@ static struct msm_camera_sensor_info msm_camera_sensor_vd6869_data = {
 };
 
 #endif	
-
-#ifdef CONFIG_OV4688
-
-static int m7wlj_ov4688_vreg_on(void)
-{
-	int rc =0;
-	pr_info("%s\n", __func__);
-
-	
-	rc = camera_sensor_power_enable("8921_l9", 2800000, &reg_8921_l9);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8921_l9\", 2.8V) FAILED %d\n", rc);
-		goto enable_ov4688_vcm_fail;
-	}
-	mdelay(1);
-
-	
-	rc = gpio_set (CAM_PIN_GPIO_CAM_VCM_PD,1);
-	if (rc < 0) {
-		goto enable_ov4688_vcm_pd_fail;
-	}
-
-	
-	rc = camera_sensor_power_enable("8921_l8", 2800000, &reg_8921_l8);
-	if (rc < 0) {
-		pr_err("[CAM] sensor_power_enable(\"8038_l8\", 2.8V) FAILED %d\n", rc);
-		goto enable_ov4688_l8_fail;
-	}
-	udelay(50);
-
-	
-	pr_info("%s: 8921_lvs4 1800000\n", __func__);
-	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
-	pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
-	if (rc < 0) {
-		pr_err("sensor_power_enable\
-			(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
-		goto enable_ov4688_io1v8_fail;
-	}
-	mdelay(5);
-	
-	rc = gpio_set (CAM_PIN_GPIO_MCAM_D1V2_EN,1);
-	if (rc < 0)
-		goto enable_ov4688_d1v2_fail;
-
-	return rc;
-
-enable_ov4688_d1v2_fail:
-	rc = camera_sensor_power_disable(reg_8921_lvs4);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-			(\"8921_lvs4\") FAILED %d\n", rc);
-
-enable_ov4688_io1v8_fail:
-	rc = camera_sensor_power_disable(reg_8921_l8);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-			(\"8921_l8\") FAILED %d\n", rc);
-
-enable_ov4688_l8_fail:
-	rc= gpio_set (CAM_PIN_GPIO_CAM_VCM_PD,0);
-	if (rc < 0)
-		pr_err("Set VCM PD fail\n");
-
-enable_ov4688_vcm_pd_fail:
-	rc = camera_sensor_power_disable(reg_8921_l9);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-			(\"8921_l9\") FAILED %d\n", rc);
-enable_ov4688_vcm_fail:
-
-	return rc;
-}
-
-static int m7wlj_ov4688_vreg_off(void)
-{
-	int rc = 0;
-	pr_info("%s\n", __func__);
-	rc = gpio_set (CAM_PIN_GPIO_MCAM_D1V2_EN,0);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-				(\"CAM_PIN_GPIO_MCAM_D1V2_EN\") FAILED %d\n", rc);
-
-	rc = camera_sensor_power_disable(reg_8921_lvs4);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-				(\"8921_lvs4\") FAILED %d\n", rc);
-	mdelay(5);
-	rc = camera_sensor_power_disable(reg_8921_l8);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-			(\"8921_l8\") FAILED %d\n", rc);
-
-	rc = gpio_set (CAM_PIN_GPIO_CAM_VCM_PD,0);
-	if (rc < 0)
-		pr_err("Set VCM PD fail\n");
-
-	rc = camera_sensor_power_disable(reg_8921_l9);
-	if (rc < 0)
-		pr_err("sensor_power_disable\
-			(\"8921_l9\") FAILED %d\n", rc);
-
-	return rc;
-}
-
-static struct msm_camera_csi_lane_params ov4688_csi_lane_params = {
-	.csi_lane_assign = 0xE4,
-	.csi_lane_mask = 0x3,
-};
-
-static struct msm_camera_sensor_platform_info sensor_ov4688_board_info = {
-	.mount_angle = 90,
-	.pixel_order_default = MSM_CAMERA_PIXEL_ORDER_GR,	
-#ifdef CONFIG_CAMERA_IMAGE_NONE_BOARD
-	.mirror_flip = CAMERA_SENSOR_MIRROR_FLIP,
-#else
-	.mirror_flip = CAMERA_SENSOR_NONE, 
-#endif
-	.sensor_reset_enable = 0,
-	.sensor_reset = 0,
-	.sensor_pwd	= CAM_PIN_GPIO_CAM_PWDN,
-	.vcm_pwd	= CAM_PIN_GPIO_CAM_VCM_PD,
-	.vcm_enable	= 1,
-	.csi_lane_params = &ov4688_csi_lane_params,
-};
-
-static struct camera_led_est msm_camera_sensor_ov4688_led_table[] = {
-                {
-                .enable = 1,
-                .led_state = FL_MODE_FLASH,
-                .current_ma = 1500,
-                .lumen_value = 1500,
-                .min_step = 20,
-                .max_step = 28
-        },
-                {
-                .enable = 1,
-                .led_state = FL_MODE_FLASH_LEVEL3,
-                .current_ma = 300,
-                .lumen_value = 300,
-                .min_step = 0,
-                .max_step = 19
-        },
-                {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH_LEVEL4,
-                .current_ma = 800,
-                .lumen_value = 880,
-                .min_step = 25,
-                .max_step = 26
-        },
-                {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH_LEVEL6,
-                .current_ma = 1200,
-                .lumen_value = 1250,
-                .min_step = 23,
-                .max_step = 24
-        },
-                {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH,
-                .current_ma = 1500,
-                .lumen_value = 1450,
-                .min_step = 0,
-                .max_step = 22    
-        },
-
-                {
-                .enable =0,
-                .led_state = FL_MODE_FLASH_LEVEL2,
-                .current_ma = 200,
-                .lumen_value = 250,
-                .min_step = 0,
-                .max_step = 270
-        },
-                {
-                .enable = 0,
-                .led_state = FL_MODE_OFF,
-                .current_ma = 0,
-                .lumen_value = 0,
-                .min_step = 0,
-                .max_step = 0
-        },
-        {
-                .enable = 0,
-                .led_state = FL_MODE_TORCH,
-                .current_ma = 150,
-                .lumen_value = 150,
-                .min_step = 0,
-                .max_step = 0
-        },
-        {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH,
-                .current_ma = 1500,
-                .lumen_value = 1450,
-                .min_step = 271,
-                .max_step = 317    
-        },
-        {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH_LEVEL5,
-                .current_ma = 500,
-                .lumen_value = 500,
-                .min_step = 25,
-                .max_step = 26
-        },
-                {
-                .enable = 0,
-                .led_state = FL_MODE_FLASH,
-                .current_ma = 750,
-                .lumen_value = 750,
-                .min_step = 271,
-                .max_step = 325
-        },
-
-        {
-                .enable = 0,
-                .led_state = FL_MODE_TORCH_LEVEL_2,
-                .current_ma = 200,
-                .lumen_value = 75,
-                .min_step = 0,
-                .max_step = 40
-        },};
-
-
-static struct camera_led_info msm_camera_sensor_ov4688_led_info = {
-        .enable = 1,
-        .low_limit_led_state = FL_MODE_TORCH,
-        .max_led_current_ma = 1500,  
-        .num_led_est_table = ARRAY_SIZE(msm_camera_sensor_ov4688_led_table),
-};
-
-
-static struct camera_flash_info msm_camera_sensor_ov4688_flash_info = {
-	.led_info = &msm_camera_sensor_ov4688_led_info,
-	.led_est_table = msm_camera_sensor_ov4688_led_table,
-};
-
-static struct camera_flash_cfg msm_camera_sensor_ov4688_flash_cfg = {
-	.low_temp_limit		= 5,
-	.low_cap_limit		= 15,
-	.flash_info             = &msm_camera_sensor_ov4688_flash_info,
-};
-
-static struct msm_camera_sensor_flash_data flash_ov4688 = {
-	.flash_type	= MSM_CAMERA_FLASH_LED,
-#ifdef CONFIG_MSM_CAMERA_FLASH
-	.flash_src	= &msm_camera_flash_src,
-#endif
-
-};
-
-static struct msm_camera_sensor_info msm_camera_sensor_ov4688_data = {
-	.sensor_name	= "ov4688",
-	.camera_power_on = m7wlj_ov4688_vreg_on,
-	.camera_power_off = m7wlj_ov4688_vreg_off,
-	.camera_yushanii_probed = m7wlj_yushanii_probed,
-	.pdata	= &m7wlj_msm_camera_csi_device_data[0],
-	.flash_data	= &flash_ov4688,
-	.sensor_platform_info = &sensor_ov4688_board_info,
-	.gpio_conf = &ov4688_back_cam_gpio_conf,
-	.csi_if	= 1,
-	.camera_type = BACK_CAMERA_2D,
-#if defined(CONFIG_RUMBAS_ACT)
-	.actuator_info = &rumbas_actuator_info,
-#endif
-#ifdef CONFIG_LC898212_ACT
-	.actuator_info = &lc898212_actuator_info,
-#endif
-	.use_rawchip = RAWCHIP_DISABLE,
-	.htc_image = HTC_CAMERA_IMAGE_YUSHANII_BOARD,
-	.hdr_mode = NON_HDR_MODE,
-	.video_hdr_capability = HDR_MODE,
-	.flash_cfg = &msm_camera_sensor_ov4688_flash_cfg, 
-};
-
-#endif
 
 #ifdef CONFIG_IMX091
 static int m7wlj_imx091_vreg_on(void)
@@ -3279,16 +2830,6 @@ static int m7wlj_ar0260_vreg_off(void)
 	pr_info("%s\n", __func__);
 
 	
-	mdelay(3);
-	rc = gpio_request(CAM_PIN_GPIO_CAM_SEL, "CAM_SEL");
-	pr_info("%s: CAM_PIN_GPIO_CAM_SEL (%d)\n", __func__, rc);
-	if (rc>=0) {
-		gpio_direction_output(CAM_PIN_GPIO_CAM_SEL, 0);
-		gpio_free(CAM_PIN_GPIO_CAM_SEL);
-	}
-	mdelay(3);
-
-	
 	pr_info("%s: 8921_l8 off\n", __func__);
 	rc = camera_sensor_power_disable(reg_8921_l8);
 	if (rc < 0)
@@ -3358,7 +2899,6 @@ static struct msm_camera_sensor_info msm_camera_sensor_ar0260_data = {
 	.vcm_enable	= 0,
 	.camera_power_on = m7wlj_ar0260_vreg_on,
 	.camera_power_off = m7wlj_ar0260_vreg_off,
-	.camera_yushanii_probed = m7wlj_yushanii_probed,
 #ifdef CONFIG_CAMERA_IMAGE_NONE_BOARD
 	.pdata	= &m7wlj_msm_camera_csi_device_data[1],
 #else
@@ -3469,7 +3009,6 @@ enable_io_fail_2:
 	}
 enable_io_fail:
 reset_high_fail:
-enable_mclk_switch_fail:
 
 	return rc;
 }
@@ -3478,16 +3017,6 @@ static int m7wlj_ov2722_vreg_off(void)
 {
 	int rc = 0;
 	pr_info("%s\n", __func__);
-
-	
-	mdelay(3);
-	rc = gpio_request(CAM_PIN_GPIO_CAM_SEL, "CAM_SEL");
-	pr_info("%s: CAM_PIN_GPIO_CAM_SEL (%d)\n", __func__, rc);
-	if (rc>=0) {
-		gpio_direction_output(CAM_PIN_GPIO_CAM_SEL, 0);
-		gpio_free(CAM_PIN_GPIO_CAM_SEL);
-	}
-	mdelay(3);
 
 	
 	pr_info("%s: 8921_l8 off\n", __func__);
@@ -3510,6 +3039,14 @@ static int m7wlj_ov2722_vreg_off(void)
 		pr_err("sensor_power_disable\
 			(\"8921_l23\") FAILED %d\n", rc);
 	mdelay(1);
+
+	if (check_yushanII_flag() == 0) {
+		rc = camera_sensor_power_disable(reg_8921_lvs1);
+		if (rc < 0)
+			pr_err("sensor_power_disable\
+				(\"8921_lvs1\") FAILED %d\n", rc);
+		mdelay(1);
+	}
 
 	return rc;
 }
@@ -3577,7 +3114,6 @@ static struct platform_device msm_camera_server = {
 
 
 #ifdef CONFIG_I2C
-
 static struct i2c_board_info m7wlj_camera_i2c_boardinfo_imx135_ar0260[] = {
 #ifdef CONFIG_IMX135
 		{
@@ -3638,22 +3174,6 @@ static struct i2c_board_info m7wlj_camera_i2c_boardinfo_vd6869_ov2722[] = {
 #endif
 };
 
-struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_s5k6a2ya[] = {
-
-#ifdef CONFIG_OV4688
-		{
-		I2C_BOARD_INFO("ov4688", 0x6c >> 1),
-		.platform_data = &msm_camera_sensor_ov4688_data,
-		},
-#endif
-#ifdef CONFIG_S5K6A2YA
-		{
-		I2C_BOARD_INFO("s5k6a2ya", 0x78 >> 1),
-		.platform_data = &msm_camera_sensor_s5k6a2ya_data,
-		}
-#endif
-};
-
 #endif
 
 
@@ -3697,43 +3217,19 @@ int m7wlj_main_camera_id(void)
 	struct pm_gpio cam_id_pmic_gpio_release = {
 		.direction      = PM_GPIO_DIR_IN,
 		.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
-		.pull      = PM_GPIO_PULL_DN,
+		.pull      = PM_GPIO_PULL_NO,
 		.vin_sel	= PM_GPIO_VIN_S4,
 		.out_strength   = PM_GPIO_STRENGTH_NO,
 		.function       = PM_GPIO_FUNC_NORMAL,
 	};
 
-	if (system_rev <= 1) { 
-		
-		rc = gpio_request(CAM_PIN_GPIO_V_RAW_1V8_EN, "V_RAW_1V8_EN");
-		pr_info("rawchip external 1v8 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_V_RAW_1V8_EN, rc);
-		if (rc) {
-			pr_err("rawchip on\
-				(\"gpio %d\", 1.2V) FAILED %d\n",
-				CAM_PIN_GPIO_V_RAW_1V8_EN, rc);
-			goto enable_io_failed;
-		}
-		gpio_direction_output(CAM_PIN_GPIO_V_RAW_1V8_EN, 1);
-	} else { 
-		pr_info("%s: 8921_lvs1 1800000\n", __func__);
-		rc = camera_sensor_power_enable("8921_lvs1", 1800000, &reg_8921_lvs1);
-		pr_info("%s: 8921_lvs1 1800000 (%d)\n", __func__, rc);
-		if (rc < 0) {
-			pr_err("sensor_power_enable\
-				(\"8921_lvs1\", 1.8V) FAILED %d\n", rc);
-			goto enable_io_failed;
-		}
-		#if defined(CONFIG_OV4688)
-			 
-			pr_info("%s: 8921_lvs4 1800000\n", __func__);
-			rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
-			pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
-			if (rc < 0) {
-				pr_err("sensor_power_enable\
-					(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
-				goto enable_io_2_failed;
-			}
-		#endif
+	pr_info("%s: 8921_lvs4 1800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
+	pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
+		goto enable_io_failed;
 	}
 	mdelay(1);
 
@@ -3742,6 +3238,7 @@ int m7wlj_main_camera_id(void)
 		pr_err("request camera_id fail %d\n", rc);
 		goto request_camid_failed;
 	}
+
 	rc = pm8xxx_gpio_config(CAM_PIN_CAMERA_ID, &cam_id_pmic_gpio_start);
 	if (rc) {
 		pr_err("%s: cam_id_pmic_gpio_start=%d\n", __func__, rc);
@@ -3775,169 +3272,63 @@ int m7wlj_main_camera_id(void)
 
 config_camid_failed:
 	gpio_free(CAM_PIN_CAMERA_ID);
-
-#if defined(CONFIG_OV4688)
 request_camid_failed:
-	if (system_rev <= 1) { 
-		gpio_direction_output(CAM_PIN_GPIO_V_RAW_1V8_EN, 0);
-		gpio_free(CAM_PIN_GPIO_V_RAW_1V8_EN);
-	} else { 
-		camera_sensor_power_disable(reg_8921_lvs4);
-		pr_info("sensor_power_disable\
-					(\"8921_lvs4\", 1.8V) \n");
-	}
-enable_io_2_failed:
-	if (system_rev > 1) { 
-		camera_sensor_power_disable(reg_8921_lvs1);
-		pr_info("sensor_power_disable\
-					(\"8921_lvs1\", 1.8V) \n");
-	}
-#else
-request_camid_failed:
-	if (system_rev <= 1) { 
-		gpio_direction_output(CAM_PIN_GPIO_V_RAW_1V8_EN, 0);
-		gpio_free(CAM_PIN_GPIO_V_RAW_1V8_EN);
-	} else { 
-		camera_sensor_power_disable(reg_8921_lvs1);
-	}
-#endif
-
+	rc = camera_sensor_power_disable(reg_8921_lvs4);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_lvs4\") FAILED %d\n", rc);
+	mdelay(1);
 enable_io_failed:
-
 	return main_camera_id;
 }
 
-#if defined(CONFIG_RUMBAS_ACT)
-void m7wkj_vcm_vreg_on(void)
+int m7wlj_front_camera_id(void)
 {
 	int rc = 0;
 	int front_camera_id = 0;
 	int read_value = 1;
 
-	rc = m7wlj_rawchip_vreg_on();
-	if (rc < 0) {
-		pr_err("%s m7wlj_rawchip_vreg_on failed\n", __func__);
-		return;
-	}
+	struct pm_gpio cam_id_pmic_gpio_start = {
+		.direction      = PM_GPIO_DIR_IN,
+		.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
+		.pull      = PM_GPIO_PULL_UP_30,
+		.vin_sel	= PM_GPIO_VIN_S4,
+		.out_strength   = PM_GPIO_STRENGTH_MED,
+		.function       = PM_GPIO_FUNC_NORMAL,
+	};
 
-	
-	if (system_rev == 1) { 
-		rc = gpio_request(CAM_PIN_GPIO_V_CAM_1V8_EN, "V_CAM_1V8_EN");
-		pr_info("I/O 1v8 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-		if (rc) {
-			pr_err("I/O 1v8 on\
-				(\"gpio %d\", 1.8V) FAILED %d\n",
-				CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-			goto enable_io_fail;
-		}
-		gpio_direction_output(CAM_PIN_GPIO_V_CAM_1V8_EN, 1);
-		gpio_free(CAM_PIN_GPIO_V_CAM_1V8_EN);
-		mdelay(5);
-	} else if (system_rev >= 2) { 
-		pr_info("%s: 8921_lvs4 1800000\n", __func__);
-		rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
-		pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
-		if (rc < 0) {
-			pr_err("sensor_power_enable\
-				(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
-			goto enable_io_fail;
-		}
-		mdelay(5);
-	}
+	struct pm_gpio cam_id_pmic_gpio_release = {
+		.direction      = PM_GPIO_DIR_IN,
+		.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
+		.pull      = PM_GPIO_PULL_NO,
+		.vin_sel	= PM_GPIO_VIN_S4,
+		.out_strength   = PM_GPIO_STRENGTH_NO,
+		.function       = PM_GPIO_FUNC_NORMAL,
+	};
 
 	pr_info("%s: 8921_lvs4 1800000\n", __func__);
 	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
 	pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
 	if (rc < 0) {
 		pr_err("sensor_power_enable\
-			(\"8921_l8\", 2.9V) FAILED %d\n", rc);
-		goto enable_analog_fail;
+			(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
+		goto enable_io_failed;
 	}
 	mdelay(1);
 
-	
-	pr_info("%s: 8921_l9 3100000\n", __func__);
-	rc = camera_sensor_power_enable("8921_l9", 3100000, &reg_8921_l9);
-	pr_info("%s: 8921_l9 3100000 (%d)\n", __func__, rc);
-	if (rc < 0) {
-		pr_err("sensor_power_enable\
-			(\"8921_l9\", 3.1V) FAILED %d\n", rc);
-		goto enable_vcm_fail;
+	rc = gpio_request(CAM_PIN_FRONT_CAMERA_ID, "CAM_PIN_FRONT_CAMERA_ID");
+	if (rc) {
+		pr_err("request front camera_id fail %d\n", rc);
+		goto request_camid_failed;
 	}
 	mdelay(1);
 
-	
-	
-	if (system_rev >= 1) { 
-#ifdef CONFIG_CAMERA_IMAGE_NONE_BOARD	
-		pr_info("%s: CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB\n", __func__);
-		rc = gpio_request(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, "CAM_D1V2_EN");
-		pr_info("%s: CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB (%d)\n", __func__, rc);
-		if (rc) {
-			pr_err("sensor_power_enable\
-				(\"gpio %d\", 1.2V) FAILED %d\n",
-				CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, rc);
-			goto enable_digital_fail;
-		}
-		gpio_direction_output(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB, 1);
-		gpio_free(CAM_PIN_PMGPIO_V_CAM_D1V2_EN_XB);
-#else
-		pr_info("[CAM]%s: CAM_PIN_GPIO_MCAM_D1V2_EN\n", __func__);
-		rc = gpio_request(CAM_PIN_GPIO_MCAM_D1V2_EN, "CAM_D1V2_EN");
-		pr_info("[CAM]%s: CAM_PIN_GPIO_MCAM_D1V2_EN (%d)\n", __func__, rc);
-		if (rc) {
-			pr_err("[CAM]sensor_power_enable\
-				(\"gpio %d\", 1.05V) FAILED %d\n",
-				CAM_PIN_GPIO_MCAM_D1V2_EN, rc);
-			goto enable_digital_fail;
-		}
-		gpio_direction_output(CAM_PIN_GPIO_MCAM_D1V2_EN, 1);
-		gpio_free(CAM_PIN_GPIO_MCAM_D1V2_EN);
-#endif
-	} else { 
-		pr_info("%s: 8921_l12 1200000\n", __func__);
-		rc = camera_sensor_power_enable("8921_l12", 1200000, &reg_8921_l12);
-		pr_info("%s: 8921_l12 1200000 (%d)\n", __func__, rc);
-		if (rc < 0) {
-			pr_err("sensor_power_enable\
-				(\"8921_l12\", 1.2V) FAILED %d\n", rc);
-			goto enable_digital_fail;
-		}
+	rc = pm8xxx_gpio_config(CAM_PIN_FRONT_CAMERA_ID, &cam_id_pmic_gpio_start);
+	if (rc) {
+		pr_err("%s: cam_id_pmic_gpio_start=%d\n", __func__, rc);
+		goto config_camid_failed;
 	}
-	mdelay(2);
-	return;
-enable_digital_fail:
-	
-	camera_sensor_power_disable(reg_8921_l9);
-enable_vcm_fail:
-	
-	camera_sensor_power_disable(reg_8921_l8);
-enable_analog_fail:
-	
-	if (system_rev == 1) { 
-		rc = gpio_request(CAM_PIN_GPIO_V_CAM_1V8_EN, "V_CAM_1V8_EN");
-		if (rc < 0) {
-			pr_err("I/O 1v8 off\
-				(\"gpio %d\", 1.8V) FAILED %d\n",
-				CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-		} else {
-			gpio_direction_output(CAM_PIN_GPIO_V_CAM_1V8_EN, 0);
-			gpio_free(CAM_PIN_GPIO_V_CAM_1V8_EN);
-		}
-	} else if (system_rev >= 2) { 
-		rc = camera_sensor_power_disable(reg_8921_lvs4);
-		if (rc < 0)
-			pr_err("sensor_power_disable\
-				(\"8921_lvs4\") FAILED %d\n", rc);
-	}
-enable_io_fail:
-	return;
-}
-
-void m7wlj_vcm_vreg_off(void)
-{
-	int rc;
-	pr_info("%s\n", __func__);
+	mdelay(1);
 
 	read_value = gpio_get_value(CAM_PIN_FRONT_CAMERA_ID);
 	if (read_value == 1)
@@ -3958,31 +3349,157 @@ request_camid_failed:
 	rc = camera_sensor_power_disable(reg_8921_lvs4);
 	if (rc < 0)
 		pr_err("sensor_power_disable\
-			(\"8921_l8\") FAILED %d\n", rc);
-	mdelay(10);
+			(\"8921_lvs4\") FAILED %d\n", rc);
+	mdelay(1);
+enable_io_failed:
+	return front_camera_id;
+}
+#endif
+
+#if defined(CONFIG_RUMBAS_ACT)
+void m7wlj_vcm_vreg_on(void)
+{
+	int rc;
+	int gpio_cam_d1v2_en=0;
+	pr_info("%s\n", __func__);
+
+	rc = m7wlj_rawchip_vreg_on();
+	if (rc < 0) {
+		pr_err("%s m7wlj_rawchip_vreg_on failed\n", __func__);
+		return;
+	}
 
 	
-	if (system_rev == 1) { 
-		rc = gpio_request(CAM_PIN_GPIO_V_CAM_1V8_EN, "V_CAM_1V8_EN");
-		pr_info("I/O 1v8 gpio_request,%d rc(%d)\n", CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-		if (rc) {
-			pr_err("I/O 1v8 on\
-				(\"gpio %d\", 1.8V) FAILED %d\n",
-				CAM_PIN_GPIO_V_CAM_1V8_EN, rc);
-		}
-		else
-		{
-			gpio_direction_output(CAM_PIN_GPIO_V_CAM_1V8_EN, 0);
-			gpio_free(CAM_PIN_GPIO_V_CAM_1V8_EN);
-		}
-		mdelay(20);
-	} else if (system_rev >= 2) { 
-		rc = camera_sensor_power_disable(reg_8921_lvs4);
-		if (rc < 0)
-			pr_err("sensor_power_disable\
-				(\"8921_lvs4\") FAILED %d\n", rc);
-		mdelay(20);
+	pr_info("%s: 8921_l23 1800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_l23", 1800000, &reg_8921_l23);
+	pr_info("%s: 8921_l23 1800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_l23\", 1.8V) FAILED %d\n", rc);
+		goto enable_cam2_d1v8_fail;
 	}
+	mdelay(50);
+
+	
+	pr_info("%s: 8921_lvs4 1800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
+	pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
+		goto enable_io_fail;
+	}
+	mdelay(1);
+
+	
+	pr_info("%s: 8921_l8 2800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_l8", 2800000, &reg_8921_l8);
+	pr_info("%s: 8921_l8 2800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_l8\", 2.8V) FAILED %d\n", rc);
+		goto enable_analog_fail;
+	}
+	mdelay(1);
+
+	
+	gpio_cam_d1v2_en = CAM_PIN_MPP8_MCAM_D1V2_EN;
+	pr_info("%s: gpio_cam_d1v2_en\n", __func__);
+	rc = gpio_request(gpio_cam_d1v2_en, "CAM_D1V2_EN");
+	pr_info("%s: gpio_cam_d1v2_en (%d)\n", __func__, rc);
+	if (rc) {
+		pr_err("sensor_power_enable\
+			(\"gpio %d\", 1.05V) FAILED %d\n",
+			gpio_cam_d1v2_en, rc);
+		goto enable_digital_fail;
+	}
+	gpio_direction_output(gpio_cam_d1v2_en, 1);
+	gpio_free(gpio_cam_d1v2_en);
+
+	
+	pr_info("%s: 8921_l9 2800000\n", __func__);
+	rc = camera_sensor_power_enable("8921_l9", 2850000, &reg_8921_l9);
+	pr_info("%s: 8921_l9 2800000 (%d)\n", __func__, rc);
+	if (rc < 0) {
+		pr_err("sensor_power_enable\
+			(\"8921_l9\", 2.8V) FAILED %d\n", rc);
+		goto enable_vcm_fail;
+	}
+	mdelay(1);
+	return;
+
+enable_vcm_fail:
+	
+	gpio_cam_d1v2_en = CAM_PIN_MPP8_MCAM_D1V2_EN;
+	rc = gpio_request(gpio_cam_d1v2_en, "CAM_D1V2_EN");
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"gpio %d\", 1.05V) FAILED %d\n",
+			gpio_cam_d1v2_en, rc);
+	else {
+		gpio_direction_output(gpio_cam_d1v2_en, 0);
+		gpio_free(gpio_cam_d1v2_en);
+	}
+enable_digital_fail:
+	
+	camera_sensor_power_disable(reg_8921_l8);
+enable_analog_fail:
+	
+	camera_sensor_power_disable(reg_8921_lvs4);
+enable_io_fail:
+	
+	camera_sensor_power_disable(reg_8921_l23);
+enable_cam2_d1v8_fail:
+	return;
+}
+
+void m7wlj_vcm_vreg_off(void)
+{
+	int rc;
+	int gpio_cam_d1v2_en=0;
+	pr_info("%s\n", __func__);
+
+	
+	pr_info("%s: 8921_l9 off\n", __func__);
+	rc = camera_sensor_power_disable(reg_8921_l9);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_l9\") FAILED %d\n", rc);
+
+	
+	gpio_cam_d1v2_en = CAM_PIN_MPP8_MCAM_D1V2_EN;
+	rc = gpio_request(gpio_cam_d1v2_en, "CAM_D1V2_EN");
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"gpio %d\", 1.05V) FAILED %d\n",
+			gpio_cam_d1v2_en, rc);
+	else {
+		gpio_direction_output(gpio_cam_d1v2_en, 0);
+		gpio_free(gpio_cam_d1v2_en);
+	}
+	mdelay(1);
+
+	
+	pr_info("%s: 8921_l8 off\n", __func__);
+	rc = camera_sensor_power_disable(reg_8921_l8);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_l8\") FAILED %d\n", rc);
+	mdelay(1);
+
+	
+	rc = camera_sensor_power_disable(reg_8921_lvs4);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_lvs4\") FAILED %d\n", rc);
+	mdelay(1);
+
+	
+	rc = camera_sensor_power_disable(reg_8921_l23);
+	if (rc < 0)
+		pr_err("sensor_power_disable\
+			(\"8921_l23\") FAILED %d\n", rc);
+	mdelay(1);
 
 	m7wlj_rawchip_vreg_off();
 }
@@ -3990,7 +3507,9 @@ request_camid_failed:
 
 void __init m7wlj_init_cam(void)
 {
-	int main_camera_id = CAMERA_SENSOR_ID_SONY_13M;
+	int main_camera_id = CAMERA_SENSOR_ID_ST_4M;
+	int front_camera_id = CAMERA_SENSOR_ID_OV2722_2M;
+
 	pr_info("%s", __func__);
 	msm_gpiomux_install(m7wlj_cam_common_configs,
 			ARRAY_SIZE(m7wlj_cam_common_configs));
@@ -4035,21 +3554,16 @@ void __init m7wlj_init_cam(void)
 			}
 
 			update_yushanII_flag(HTC_CAMERA_IMAGE_YUSHANII_BOARD);
-		} else if(main_camera_id == CAMERA_SENSOR_ID_OV_4M){
-			i2c_register_board_info(APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-				m7wlj_camera_i2c_boardinfo_ov4688_s5k6a2ya,
-				ARRAY_SIZE(m7wlj_camera_i2c_boardinfo_ov4688_s5k6a2ya));
-			update_yushanII_flag(HTC_CAMERA_IMAGE_YUSHANII_BOARD);
-		}
-		else {
-
-			
-			msm_camera_sensor_ov2722_data.pdata = &m7wlj_msm_camera_csi_device_data[1];
-			
-
-			i2c_register_board_info(APQ_8064_GSBI4_QUP_I2C_BUS_ID,
-				m7wlj_camera_i2c_boardinfo_imx135_ov2722,
-				ARRAY_SIZE(m7wlj_camera_i2c_boardinfo_imx135_ov2722));
+		} else {
+			if (front_camera_id == CAMERA_SENSOR_ID_AR0260_2M) {
+				i2c_register_board_info(APQ_8064_GSBI4_QUP_I2C_BUS_ID,
+					m7wlj_camera_i2c_boardinfo_imx135_ar0260,
+					ARRAY_SIZE(m7wlj_camera_i2c_boardinfo_imx135_ar0260));
+			}else{
+				i2c_register_board_info(APQ_8064_GSBI4_QUP_I2C_BUS_ID,
+					m7wlj_camera_i2c_boardinfo_imx135_ov2722,
+					ARRAY_SIZE(m7wlj_camera_i2c_boardinfo_imx135_ov2722));
+			}
 
 			update_yushanII_flag(HTC_CAMERA_IMAGE_NONE_BOARD);
 		}
