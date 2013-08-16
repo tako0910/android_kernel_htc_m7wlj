@@ -13,13 +13,13 @@
 
 
 static struct class *felica_class;
-static struct class *snfc_class;
+//static struct class *snfc_class;
 
 static int felica_int_pin;
 static int felica_int_irq;
 
-static int snfc_intu_pin;
-static int snfc_intu_irq;
+//static int snfc_intu_pin;
+//static int snfc_intu_irq;
 
 static int gfa_open_cnt;
 static int gfa_pid;
@@ -45,22 +45,22 @@ struct felica_int_irqdata
 static struct felica_int_irqdata	gint_irq;
 static struct felica_int_irqdata	*pgint_irq = &gint_irq;
 
-struct snfc_intu_irqdata
-{
-	struct delayed_work	work;
-	wait_queue_head_t	read_wait;
-	int					irq_done;
-	int					open_flag;
-};
-static struct snfc_intu_irqdata	gintu_irq;
-static struct snfc_intu_irqdata	*pgintu_irq = &gintu_irq;
+//struct snfc_intu_irqdata
+//{
+//	struct delayed_work	work;
+//	wait_queue_head_t	read_wait;
+//	int					irq_done;
+//	int					open_flag;
+//};
+//static struct snfc_intu_irqdata	gintu_irq;
+//static struct snfc_intu_irqdata	*pgintu_irq = &gintu_irq;
 
-struct snfc_auto_polling
-{
-	int			auto_polling_done;
-	wait_queue_head_t	auto_polling_wait;
-	struct delayed_work 	snfc_auto_polling_work;
-};
+//struct snfc_auto_polling
+//{
+//	int			auto_polling_done;
+//	wait_queue_head_t	auto_polling_wait;
+//	struct delayed_work 	snfc_auto_polling_work;
+//};
 
 static uid_t gmfc_uid  = -1;
 static uid_t gmfl_uid  = -1;
@@ -73,11 +73,11 @@ static char gdiag_name[DIAG_NAME_MAXSIZE+1];
 static struct felica_platform_data *felica_pdata;
 
 static char gfelica_uart_status;
-static char gsnfc_uart_status;
+//static char gsnfc_uart_status;
 
 static struct mutex uart_mutex;
 
-static DECLARE_WAIT_QUEUE_HEAD(wait_snfc_uart_release);
+//static DECLARE_WAIT_QUEUE_HEAD(wait_snfc_uart_release);
 
 void set_felica_uart_status(int status) {
 	gfelica_uart_status = status;
@@ -87,14 +87,14 @@ int get_felica_uart_status(void) {
 	return gfelica_uart_status;
 }
 
-void set_snfc_uart_status(int status) {
-	gsnfc_uart_status = status;
-	wake_up_interruptible(&wait_snfc_uart_release);
-}
+//void set_snfc_uart_status(int status) {
+//	gsnfc_uart_status = status;
+//	wake_up_interruptible(&wait_snfc_uart_release);
+//}
 
-int get_snfc_uart_status(void) {
-	return gsnfc_uart_status;
-}
+//int get_snfc_uart_status(void) {
+//	return gsnfc_uart_status;
+//}
 
 static dev_t devid_felica_uart;
 static struct cdev cdev_felica_uart;
@@ -205,15 +205,15 @@ int felica_uart_open(struct inode *inode, struct file *file)
 	FELICA_LOG_DEBUG("[FELICA_DD] %s DOWN SEM", __func__);
 
 	mutex_lock(&uart_mutex);
-	while (get_snfc_uart_status() == 1) {
-		FELICA_LOG_INFO("[FELICA_DD] %s wait snfc_uart_status[%d]", __func__, get_snfc_uart_status());
-		mutex_unlock(&uart_mutex);
-		ret = wait_event_interruptible(wait_snfc_uart_release, get_snfc_uart_status() == 0);
-		mutex_lock(&uart_mutex);
-		FELICA_LOG_INFO("[FELICA_DD] %s Done(wait_event_interruptible), ret=[%d], snfc_uart_status[%d]", __func__, ret, get_snfc_uart_status());
-	}
+//	while (get_snfc_uart_status() == 1) {
+//		FELICA_LOG_INFO("[FELICA_DD] %s wait snfc_uart_status[%d]", __func__, get_snfc_uart_status());
+//		mutex_unlock(&uart_mutex);
+//		ret = wait_event_interruptible(wait_snfc_uart_release, get_snfc_uart_status() == 0);
+//		mutex_lock(&uart_mutex);
+//		FELICA_LOG_INFO("[FELICA_DD] %s Done(wait_event_interruptible), ret=[%d], snfc_uart_status[%d]", __func__, ret, get_snfc_uart_status());
+//	}
 
-	FELICA_LOG_INFO("[FELICA_DD] %s get snfc_uart_status[%d]", __func__, get_snfc_uart_status());
+//	FELICA_LOG_INFO("[FELICA_DD] %s get snfc_uart_status[%d]", __func__, get_snfc_uart_status());
 
 	if( gfa_open_cnt == 0 )
 	{
@@ -1757,1209 +1757,1209 @@ long felica_uid_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 
 
-static dev_t devid_snfc_pon;
-static struct cdev cdev_snfc_pon;
-static struct file_operations fops_snfc_pon = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_pon_open,
-	.release	= snfc_pon_close,
-	.read		= snfc_pon_read,
-	.write		= snfc_pon_write,
-};
-
-void snfc_pon_init(void)
-{
-	int ret;
-	struct device *device_snfc_pon;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_PON					101
-	devid_snfc_pon = MKDEV(SNFC_MAJOR_PON, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT, SNFC_PON_NAME);
-#else
-	devid_snfc_pon = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_pon, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_PON_NAME);
-#endif
-
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_pon, &fops_snfc_pon);
-	ret = cdev_add(&cdev_snfc_pon, devid_snfc_pon, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_pon = device_create(snfc_class, NULL, devid_snfc_pon, NULL, SNFC_PON_NAME);
-	if( IS_ERR(device_snfc_pon) )
-	{
-		cdev_del(&cdev_snfc_pon);
-		unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_pon), MINOR(devid_snfc_pon));
-}
-
-void snfc_pon_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_pon);
-	cdev_del(&cdev_snfc_pon);
-	unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-}
-
-int snfc_pon_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
-        (uid != gdiag_uid)  )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_pon_close(struct inode *inode, struct file *file)
-{
-	uid_t uid;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	uid = __task_cred(current)->uid;
-	if( uid == gdtl_uid  )
-	{
-		
-		
-		
-		
-		
-		
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_pon_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	if( felica_pdata->pon_gpio_func )
-		felica_pdata->pon_gpio_func(GPIOREAD, 0, &ret);
-	else {
-		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
-		return -EFAULT;
-	}
-
-	if( ret == GPIO_VALUE_HIGH )
-	{
-		retparam = SNFC_PON_WIRED;
-		SNFC_LOG_INFO("[SNFC_DD] %s pon is HIGH [start]", __func__);
-	}
-	else if( ret == GPIO_VALUE_LOW )
-	{
-		retparam = SNFC_PON_WIRELESS;
-		SNFC_LOG_INFO("[SNFC_DD] %s pon is LOW [standby]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_PON_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_PON_DATA_LEN;
-}
-
-ssize_t snfc_pon_write(struct file *file, const char __user *data, size_t len, loff_t *ppos)
-{
-	char pon;
-	int ret;
-	int setparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	ret = copy_from_user(&pon, data, SNFC_PON_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-
-	if( pon == SNFC_PON_WIRED )
-	{
-		setparam = GPIO_VALUE_HIGH;
-		SNFC_LOG_INFO("[SNFC_DD] %s set pon to HIGH [start]", __func__);
-	}
-	else if( pon == SNFC_PON_WIRELESS )
-	{
-		setparam = GPIO_VALUE_LOW;
-		SNFC_LOG_INFO("[SNFC_DD] %s set pon to LOW [standby]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), pon=[%d]", __func__, pon);
-		return -EINVAL;
-	}
-
-	if( felica_pdata->pon_gpio_func )
-		felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
-	else {
-		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
-		return -EFAULT;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_PON_DATA_LEN;
-}
-
-
-static dev_t devid_snfc_cen;
-static struct cdev cdev_snfc_cen;
-static struct file_operations fops_snfc_cen = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_cen_open,
-	.release	= snfc_cen_close,
-	.read		= snfc_cen_read,
-};
-
-void snfc_cen_init(void)
-{
-	int ret;
-	struct device *device_snfc_cen;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_CEN					102
-	devid_snfc_cen = MKDEV(SNFC_MAJOR_CEN, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT, SNFC_CEN_NAME);
-#else
-	devid_snfc_cen = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_cen, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_CEN_NAME);
-#endif
-
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_cen, &fops_snfc_cen);
-	ret = cdev_add(&cdev_snfc_cen, devid_snfc_cen, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_cen = device_create(snfc_class, NULL, devid_snfc_cen, NULL, SNFC_CEN_NAME);
-	if( IS_ERR(device_snfc_cen) )
-	{
-		cdev_del(&cdev_snfc_cen);
-		unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_cen), MINOR(devid_snfc_cen));
-}
-
-void snfc_cen_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_cen);
-	cdev_del(&cdev_snfc_cen);
-	unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-}
-
-int snfc_cen_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-
-	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
-		(uid != gdiag_uid)  )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_cen_close(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_cen_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	if( felica_pdata->cen_gpio_func )
-		felica_pdata->cen_gpio_func(GPIOREAD, 0, &ret);
-	else
-		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->cen_gpio_func is NULL", __func__);
-
-	if( ret == SNFC_CEN_UNLOCK )
-	{
-		retparam = FELICA_CEN_UNLOCK;
-		SNFC_LOG_INFO("[SNFC_DD] %s CEN [UnLock]", __func__);
-	}
-	else if( ret == SNFC_CEN_LOCK )
-	{
-		retparam = FELICA_CEN_LOCK;
-		SNFC_LOG_INFO("[SNFC_DD] %s CEN [Lock]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_CEN_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_CEN_DATA_LEN;
-}
-
-
-static dev_t devid_snfc_rfs;
-static struct cdev cdev_snfc_rfs;
-static struct file_operations fops_snfc_rfs = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_rfs_open,
-	.release	= snfc_rfs_close,
-	.read		= snfc_rfs_read,
-};
-
-void snfc_rfs_init(void)
-{
-	int ret;
-	struct device *device_snfc_rfs;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_RFS					103
-	devid_snfc_rfs = MKDEV(SNFC_MAJOR_RFS, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT, SNFC_RFS_NAME);
-#else
-	devid_snfc_rfs = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_rfs, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_RFS_NAME);
-#endif
-
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_rfs, &fops_snfc_rfs);
-	ret = cdev_add(&cdev_snfc_rfs, devid_snfc_rfs, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_rfs = device_create(snfc_class, NULL, devid_snfc_rfs, NULL, SNFC_RFS_NAME);
-	if( IS_ERR(device_snfc_rfs) )
-	{
-		cdev_del(&cdev_snfc_rfs);
-		unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_rfs), MINOR(devid_snfc_rfs));
-}
-
-void snfc_rfs_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_rfs);
-	cdev_del(&cdev_snfc_rfs);
-	unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-}
-
-int snfc_rfs_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-
-	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
-		(uid != gdiag_uid)  )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_rfs_close(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_rfs_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	if( felica_pdata->rfs_gpio_func )
-		felica_pdata->rfs_gpio_func(GPIOREAD, 0, &ret);
-	else {
-		FELICA_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
-		return -EFAULT;
-	}
-
-	if( ret == GPIO_VALUE_HIGH )
-	{
-		retparam = SNFC_RFS_STANDBY;
-		SNFC_LOG_DEBUG("[SNFC_DD] %s RFS is HIGH [standby]", __func__);
-	}
-	else if( ret == GPIO_VALUE_LOW )
-	{
-		retparam = SNFC_RFS_DETECTED;
-		SNFC_LOG_DEBUG("[SNFC_DD] %s RFS is LOW [detected]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_RFS_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_RFS_DATA_LEN;
-}
-
-
-static dev_t devid_snfc_intu;
-static struct cdev cdev_snfc_intu;
-static struct file_operations fops_snfc_intu = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_intu_open,
-	.release	= snfc_intu_close,
-	.read		= snfc_intu_read,
-};
-
-void snfc_intu_init(void)
-{
-	int ret;
-
-	struct device *device_snfc_intu;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_INTU					104
-	devid_snfc_intu = MKDEV(SNFC_MAJOR_INTU, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT, SNFC_INTU_NAME);
-#else
-	devid_snfc_intu = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_intu, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_INTU_NAME);
-#endif
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_intu, &fops_snfc_intu);
-	ret = cdev_add(&cdev_snfc_intu, devid_snfc_intu, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_intu = device_create(snfc_class, NULL, devid_snfc_intu, NULL, SNFC_INTU_NAME);
-	if( IS_ERR(device_snfc_intu) )
-	{
-		cdev_del(&cdev_snfc_intu);
-		unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_intu), MINOR(devid_snfc_intu));
-}
-
-void snfc_intu_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_intu);
-	cdev_del(&cdev_snfc_intu);
-	unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-}
-
-int snfc_intu_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-	if( uid != gdiag_uid)
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gdiag_uid=[%d], ", __func__, uid, gdiag_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_intu_close(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_intu_read(struct file *file, char __user * buf, size_t len, loff_t * ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	ret = gpio_get_value(snfc_intu_pin);
-
-	if( ret == GPIO_VALUE_HIGH )
-	{
-		retparam = SNFC_INTU_HIGH;
-		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is HIGH", __func__);
-	}
-	else if( ret == GPIO_VALUE_LOW )
-	{
-		retparam = SNFC_INTU_LOW;
-		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is LOW", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_INTU_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_INTU_DATA_LEN;
-}
-
-
-static dev_t devid_snfc_intu_poll;
-static struct cdev cdev_snfc_intu_poll;
-static struct file_operations fops_snfc_intu_poll = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_intu_poll_open,
-	.release	= snfc_intu_poll_close,
-	.read		= snfc_intu_poll_read,
-	.poll		= snfc_intu_poll_poll,
-};
-
-irqreturn_t snfc_intu_irq_handler(int irq, void *dev_id)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	disable_irq_nosync(snfc_intu_irq);
-
-	schedule_delayed_work(&pgintu_irq->work, msecs_to_jiffies(SNFC_INTU_DELAY_TIME));
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return IRQ_HANDLED;
-}
-
-void snfc_intu_irq_work(struct work_struct *work)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	enable_irq(snfc_intu_irq);
-
-	pgintu_irq->irq_done = 1;
-	wake_up_interruptible(&pgintu_irq->read_wait);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-}
-
-void snfc_intu_poll_init(void)
-{
-	int ret;
-
-	struct device *device_snfc_intu_poll;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_INTU_POLL				105
-	devid_snfc_intu_poll = MKDEV(SNFC_MAJOR_INTU_POLL, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT, SNFC_INTU_POLL_NAME);
-#else
-	devid_snfc_intu_poll = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_intu_poll, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_INTU_POLL_NAME);
-#endif
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_intu_poll, &fops_snfc_intu_poll);
-	ret = cdev_add(&cdev_snfc_intu_poll, devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_intu_poll = device_create(snfc_class, NULL, devid_snfc_intu_poll, NULL, SNFC_INTU_POLL_NAME);
-	if( IS_ERR(device_snfc_intu_poll) )
-	{
-		cdev_del(&cdev_snfc_intu_poll);
-		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	memset(pgintu_irq, 0x00, sizeof(struct snfc_intu_irqdata));
-	INIT_DELAYED_WORK(&pgintu_irq->work, snfc_intu_irq_work);
-	init_waitqueue_head(&pgintu_irq->read_wait);
-	ret = request_irq(	snfc_intu_irq,
-				snfc_intu_irq_handler,
-				IRQF_TRIGGER_FALLING|IRQF_TRIGGER_RISING,
-				SNFC_INTU_POLL_NAME,
-				(void*)pgintu_irq);
-	if( ret != 0 )
-	{
-		device_destroy(snfc_class, devid_snfc_intu_poll);
-		cdev_del(&cdev_snfc_intu_poll);
-		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(request_irq), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	ret = enable_irq_wake(snfc_intu_irq);
-
-	if( ret < 0 )
-	{
-		free_irq(snfc_intu_irq, (void*)pgintu_irq);
-		device_destroy(snfc_class, devid_snfc_intu_poll);
-		cdev_del(&cdev_snfc_intu_poll);
-		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(enable_irq_wake), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	pgintu_irq->irq_done = 0;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_intu_poll), MINOR(devid_snfc_intu_poll));
-}
-
-void snfc_intu_poll_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	disable_irq(snfc_intu_irq);
-
-	free_irq(snfc_intu_irq, (void*)pgintu_irq);
-
-	device_destroy(snfc_class, devid_snfc_intu_poll);
-	cdev_del(&cdev_snfc_intu_poll);
-	unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-}
-
-int snfc_intu_poll_open(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_intu_poll_close(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_intu_poll_read(struct file *file, char __user * buf, size_t len, loff_t * ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	if( !pgintu_irq->irq_done )
-	{
-		ret = wait_event_interruptible(pgintu_irq->read_wait, pgintu_irq->irq_done == 1);
-		if( ret < 0 )
-		{
-			SNFC_LOG_WARN("[SNFC_DD] %s warn(wait_event_interruptible), ret=[%d], pgintu_irq->irq_done=[%x]", __func__, ret, pgintu_irq->irq_done);
-			return -EINTR;
-		}
-	}
-
-	ret = gpio_get_value(snfc_intu_pin);
-
-	if( ret == GPIO_VALUE_HIGH )
-	{
-		retparam = SNFC_INTU_HIGH;
-		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is HIGH", __func__);
-	}
-	else if( ret == GPIO_VALUE_LOW )
-	{
-		retparam = SNFC_INTU_LOW;
-		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is LOW", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_INTU_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	pgintu_irq->irq_done = 0;
-
-	SNFC_LOG_INFO("[SNFC_DD] %s END", __func__);
-	return SNFC_INTU_DATA_LEN;
-}
-
-unsigned int snfc_intu_poll_poll(struct file *file, poll_table *wait)
-{
-	unsigned int mask = 0;
-
-	SNFC_LOG_DEBUG("%s START", __func__);
-
-	poll_wait(file, &pgintu_irq->read_wait, wait);
-	if( pgintu_irq->irq_done )
-	{
-		mask = POLLIN | POLLRDNORM;
-	}
-	SNFC_LOG_DEBUG("%s END", __func__);
-
-	return (mask);
-}
-
-
-static dev_t devid_snfc_auto_polling;
-static struct cdev cdev_snfc_auto_polling;
-static struct file_operations fops_snfc_auto_polling = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_auto_polling_open,
-	.release	= snfc_auto_polling_close,
-	.read		= snfc_auto_polling_read,
-};
-
-#define AUTO_POLLING_CHECK_DELAY 	10
-static struct snfc_auto_polling *auto_polling;
-
-int snfc_auto_polling_check_func(void)
-{
-	int cen_status = 0;
-	int rfs_status = 0;
-	if( felica_pdata->cen_gpio_func )
-		felica_pdata->cen_gpio_func(GPIOREAD, 0, &cen_status);
-	else
-		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->cen_gpio_func is NULL", __func__);
-
-	if( felica_pdata->rfs_gpio_func )
-			felica_pdata->rfs_gpio_func(GPIOREAD, 0, &rfs_status);
-	else
-		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
-
-	if( GPIO_VALUE_HIGH == rfs_status && FELICA_CEN_UNLOCK == cen_status && get_felica_uart_status() == 0)
-	{
-		SNFC_LOG_DEBUG("[SNFC_DD] %s Done", __func__);
-		return 1;
-	}
-
-	return 0;
-}
-
-static void snfc_auto_polling_work_func(struct work_struct *dummy)
-{
-
-	if( snfc_auto_polling_check_func() == 1)
-	{
-		auto_polling->auto_polling_done = 1;
-		SNFC_LOG_DEBUG("[SNFC_DD] %s Done[%d] ", __func__, auto_polling->auto_polling_done );
-		wake_up_interruptible(&auto_polling->auto_polling_wait);
-	}
-	else {
-		auto_polling->auto_polling_done = 0;
-		schedule_delayed_work(&auto_polling->snfc_auto_polling_work, msecs_to_jiffies(AUTO_POLLING_CHECK_DELAY));
-	}
-}
-
-void snfc_auto_polling_init(void)
-{
-	int ret;
-	struct device *device_snfc_auto_polling;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_AUTO_POLLING					106
-	devid_snfc_auto_polling = MKDEV(SNFC_MAJOR_AUTO_POLLING, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT, SNFC_AUTO_POLLING_NAME);
-#else
-	devid_snfc_auto_polling = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_auto_polling, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_AUTO_POLLING_NAME);
-#endif
-
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	auto_polling = kzalloc(sizeof(*auto_polling), GFP_KERNEL);
-	if (!auto_polling) {
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(Cannot allocate device data)", __func__);
-		return;
-	}
-	init_waitqueue_head(&auto_polling->auto_polling_wait);
-	INIT_DELAYED_WORK(&auto_polling->snfc_auto_polling_work, snfc_auto_polling_work_func);
-
-	cdev_init(&cdev_snfc_auto_polling, &fops_snfc_auto_polling);
-	ret = cdev_add(&cdev_snfc_auto_polling, devid_snfc_auto_polling, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		goto snfc_auto_polling_free;
-	}
-
-	device_snfc_auto_polling = device_create(snfc_class, NULL, devid_snfc_auto_polling, NULL, SNFC_AUTO_POLLING_NAME);
-	if( IS_ERR(device_snfc_auto_polling) )
-	{
-		cdev_del(&cdev_snfc_auto_polling);
-		unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		goto snfc_auto_polling_free;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_auto_polling), MINOR(devid_snfc_auto_polling));
-	return;
-
-snfc_auto_polling_free:
-	kfree(auto_polling);
-}
-
-void snfc_auto_polling_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_auto_polling);
-	cdev_del(&cdev_snfc_auto_polling);
-	unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-}
-
-int snfc_auto_polling_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-
-	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
-		(uid != gdiag_uid)  )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_auto_polling_close(struct inode *inode, struct file *file)
-{
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-	
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_auto_polling_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	if( snfc_auto_polling_check_func() == 1)
-		retparam = 1;
-	else {
-		auto_polling->auto_polling_done = 0;
-		schedule_delayed_work(&auto_polling->snfc_auto_polling_work, msecs_to_jiffies(AUTO_POLLING_CHECK_DELAY));
-		ret = wait_event_interruptible(auto_polling->auto_polling_wait, auto_polling->auto_polling_done == 1);
-		if( ret < 0 )
-		{
-			retparam = 0;
-			cancel_delayed_work_sync(&auto_polling->snfc_auto_polling_work);
-			SNFC_LOG_WARN("[SNFC_DD] %s warn(wait_event_interruptible), ret=[%d], auto_polling->auto_polling_done=[%x]", __func__, ret, auto_polling->auto_polling_done);
-			return -EINTR;
-		}
-		else
-			retparam = 1;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_AUTO_POLLING_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_AUTO_POLLING_DATA_LEN;
-}
-
-
-static dev_t devid_snfc_hsel;
-static struct cdev cdev_snfc_hsel;
-static struct file_operations fops_snfc_hsel = {
-	.owner		= THIS_MODULE,
-	.open		= snfc_hsel_open,
-	.release	= snfc_hsel_close,
-	.read		= snfc_hsel_read,
-	.write		= snfc_hsel_write,
-};
-
-void snfc_hsel_init(void)
-{
-	int ret;
-	struct device *device_snfc_hsel;
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-#if 1
-	#define SNFC_MAJOR_HSEL					107
-	devid_snfc_hsel = MKDEV(SNFC_MAJOR_HSEL, SNFC_MINOR);
-	ret = register_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT, SNFC_HSEL_NAME);
-#else
-	devid_snfc_hsel = MKDEV(SNFC_MAJOR, SNFC_MINOR);
-	ret = alloc_chrdev_region(&devid_snfc_hsel, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_HSEL_NAME);
-#endif
-
-	if( ret < 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	cdev_init(&cdev_snfc_hsel, &fops_snfc_hsel);
-	ret = cdev_add(&cdev_snfc_hsel, devid_snfc_hsel, SNFC_MINOR_COUNT);
-	if( ret < 0 )
-	{
-		unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
-		return;
-	}
-
-	device_snfc_hsel = device_create(snfc_class, NULL, devid_snfc_hsel, NULL, SNFC_HSEL_NAME);
-	if( IS_ERR(device_snfc_hsel) )
-	{
-		cdev_del(&cdev_snfc_hsel);
-		unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
-		return;
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_hsel), MINOR(devid_snfc_hsel));
-}
-
-void snfc_hsel_exit(void)
-{
-	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
-
-	device_destroy(snfc_class, devid_snfc_hsel);
-	cdev_del(&cdev_snfc_hsel);
-	unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-}
-
-int snfc_hsel_open(struct inode *inode, struct file *file)
-{
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid_t uid;
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
-	uid = __task_cred(current)->uid;
-	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
-        (uid != gdiag_uid)  )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
-		return -EACCES;
-	}
-
-#endif
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-int snfc_hsel_close(struct inode *inode, struct file *file)
-{
-	uid_t uid;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	uid = __task_cred(current)->uid;
-	if( uid == gdtl_uid  )
-	{
-		if( felica_pdata->hsel_gpio_func )
-			felica_pdata->hsel_gpio_func(GPIOWRITE, GPIO_VALUE_LOW, NULL);
-		else {
-			FELICA_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
-			return -EFAULT;
-		}
-		SNFC_LOG_DEBUG("[SNFC_DD] %s set hsel to LOW [standby]", __func__);
-	}
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return 0;
-}
-
-ssize_t snfc_hsel_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
-{
-	int ret;
-	char retparam;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	if( felica_pdata->hsel_gpio_func )
-		felica_pdata->hsel_gpio_func(GPIOREAD, 0, &ret);
-	else
-		FELICA_LOG_ERR("[FELICA_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
-
-	if( ret == GPIO_VALUE_HIGH )
-	{
-		retparam = SNFC_HSEL_WIRED;
-		SNFC_LOG_INFO("[SNFC_DD] %s HSEL is HIGH [start]", __func__);
-	}
-	else if( ret == GPIO_VALUE_LOW )
-	{
-		retparam = SNFC_HSEL_WIRELESS;
-		SNFC_LOG_INFO("[SNFC_DD] %s HSEL is LOW [standby]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
-		return -EIO;
-	}
-
-	ret = copy_to_user(buf, &retparam, SNFC_HSEL_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-	*ppos += 1;
-
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_HSEL_DATA_LEN;
-}
-
-ssize_t snfc_hsel_write(struct file *file, const char __user *data, size_t len, loff_t *ppos)
-{
-	char hsel;
-	int ret;
-	int setparam, rfs_status, need_delay_time;
-	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
-
-	ret = copy_from_user(&hsel, data, SNFC_HSEL_DATA_LEN);
-	if( ret != 0 )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), ret=[%d]", __func__, ret);
-		return -EFAULT;
-	}
-
-	mutex_lock(&uart_mutex);
-	if( (hsel == SNFC_HSEL_WIRED) || (hsel == SNFC_HSEL_FOR_TARGET) || (hsel == SNFC_HSEL_FOR_INTU) )
-	{
-		need_delay_time = 1;
-		if(hsel == SNFC_HSEL_FOR_INTU)
-			need_delay_time = 0;
-		else if(hsel == SNFC_HSEL_FOR_TARGET) {
-			if( felica_pdata->rfs_gpio_func ) {
-				felica_pdata->rfs_gpio_func(GPIOREAD, 0, &rfs_status);
-				if( GPIO_VALUE_LOW == rfs_status )
-					need_delay_time = 0;
-			}
-			else
-				SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
-		}
-
-		if( get_felica_uart_status() == 1 ) {
-			SNFC_LOG_ERR("[SNFC_DD] %s felica is useing uart", __func__);
-			goto snfc_hsel_write_error;
-		}
-
-		setparam = GPIO_VALUE_HIGH;
-		if( felica_pdata->pon_gpio_func )
-			felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
-		else {
-			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
-			goto snfc_hsel_write_error;
-		}
-
-		if( felica_pdata->hsel_gpio_func )
-			felica_pdata->hsel_gpio_func(GPIOWRITE, setparam, NULL);
-		else {
-			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
-			goto snfc_hsel_write_error;
-		}
-
-		set_snfc_uart_status(1);
-
-		if( need_delay_time == 1 )
-			msleep(10);
-
-		SNFC_LOG_DEBUG("[SNFC_DD] %s Set HSEL to HIGH [start], case:[%d], need_delay_time:[%d]", __func__, hsel, need_delay_time);
-	}
-	else if( hsel == SNFC_HSEL_WIRELESS )
-	{
-		setparam = GPIO_VALUE_LOW;
-		if( felica_pdata->pon_gpio_func )
-			felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
-		else {
-			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
-			goto snfc_hsel_write_error;
-		}
-
-		if( felica_pdata->hsel_gpio_func )
-			felica_pdata->hsel_gpio_func(GPIOWRITE, setparam, NULL);
-		else {
-			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
-			goto snfc_hsel_write_error;
-		}
-
-		set_snfc_uart_status(0);
-
-		SNFC_LOG_DEBUG("[SNFC_DD] %s Set HSEL to LOW [standby]", __func__);
-	}
-	else
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), hsel=[%d]", __func__, hsel);
-		goto snfc_hsel_write_error;
-	}
-
-	mutex_unlock(&uart_mutex);
-	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
-	return SNFC_HSEL_DATA_LEN;
-
-snfc_hsel_write_error:
-	mutex_unlock(&uart_mutex);
-	return -EINVAL;
-
-}
+//static dev_t devid_snfc_pon;
+//static struct cdev cdev_snfc_pon;
+//static struct file_operations fops_snfc_pon = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_pon_open,
+//	.release	= snfc_pon_close,
+//	.read		= snfc_pon_read,
+//	.write		= snfc_pon_write,
+//};
+
+//void snfc_pon_init(void)
+//{
+//	int ret;
+//	struct device *device_snfc_pon;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_PON					101
+//	devid_snfc_pon = MKDEV(SNFC_MAJOR_PON, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT, SNFC_PON_NAME);
+//#else
+//	devid_snfc_pon = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_pon, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_PON_NAME);
+//#endif
+//
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_pon, &fops_snfc_pon);
+//	ret = cdev_add(&cdev_snfc_pon, devid_snfc_pon, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_pon = device_create(snfc_class, NULL, devid_snfc_pon, NULL, SNFC_PON_NAME);
+//	if( IS_ERR(device_snfc_pon) )
+//	{
+//		cdev_del(&cdev_snfc_pon);
+//		unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_pon), MINOR(devid_snfc_pon));
+//}
+//
+//void snfc_pon_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_pon);
+//	cdev_del(&cdev_snfc_pon);
+//	unregister_chrdev_region(devid_snfc_pon, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//}
+//
+//int snfc_pon_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
+//        (uid != gdiag_uid)  )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_pon_close(struct inode *inode, struct file *file)
+//{
+//	uid_t uid;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	uid = __task_cred(current)->uid;
+//	if( uid == gdtl_uid  )
+//	{
+//		
+//		
+//		
+//		
+//		
+//		
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_pon_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	if( felica_pdata->pon_gpio_func )
+//		felica_pdata->pon_gpio_func(GPIOREAD, 0, &ret);
+//	else {
+//		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
+//		return -EFAULT;
+//	}
+//
+//	if( ret == GPIO_VALUE_HIGH )
+//	{
+//		retparam = SNFC_PON_WIRED;
+//		SNFC_LOG_INFO("[SNFC_DD] %s pon is HIGH [start]", __func__);
+//	}
+//	else if( ret == GPIO_VALUE_LOW )
+//	{
+//		retparam = SNFC_PON_WIRELESS;
+//		SNFC_LOG_INFO("[SNFC_DD] %s pon is LOW [standby]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_PON_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_PON_DATA_LEN;
+//}
+//
+//ssize_t snfc_pon_write(struct file *file, const char __user *data, size_t len, loff_t *ppos)
+//{
+//	char pon;
+//	int ret;
+//	int setparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	ret = copy_from_user(&pon, data, SNFC_PON_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//
+//	if( pon == SNFC_PON_WIRED )
+//	{
+//		setparam = GPIO_VALUE_HIGH;
+//		SNFC_LOG_INFO("[SNFC_DD] %s set pon to HIGH [start]", __func__);
+//	}
+//	else if( pon == SNFC_PON_WIRELESS )
+//	{
+//		setparam = GPIO_VALUE_LOW;
+//		SNFC_LOG_INFO("[SNFC_DD] %s set pon to LOW [standby]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), pon=[%d]", __func__, pon);
+//		return -EINVAL;
+//	}
+//
+//	if( felica_pdata->pon_gpio_func )
+//		felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
+//	else {
+//		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
+//		return -EFAULT;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_PON_DATA_LEN;
+//}
+//
+//
+//static dev_t devid_snfc_cen;
+//static struct cdev cdev_snfc_cen;
+//static struct file_operations fops_snfc_cen = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_cen_open,
+//	.release	= snfc_cen_close,
+//	.read		= snfc_cen_read,
+//};
+//
+//void snfc_cen_init(void)
+//{
+//	int ret;
+//	struct device *device_snfc_cen;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_CEN					102
+//	devid_snfc_cen = MKDEV(SNFC_MAJOR_CEN, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT, SNFC_CEN_NAME);
+//#else
+//	devid_snfc_cen = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_cen, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_CEN_NAME);
+//#endif
+//
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_cen, &fops_snfc_cen);
+//	ret = cdev_add(&cdev_snfc_cen, devid_snfc_cen, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_cen = device_create(snfc_class, NULL, devid_snfc_cen, NULL, SNFC_CEN_NAME);
+//	if( IS_ERR(device_snfc_cen) )
+//	{
+//		cdev_del(&cdev_snfc_cen);
+//		unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_cen), MINOR(devid_snfc_cen));
+//}
+//
+//void snfc_cen_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_cen);
+//	cdev_del(&cdev_snfc_cen);
+//	unregister_chrdev_region(devid_snfc_cen, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//}
+//
+//int snfc_cen_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//
+//	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
+//		(uid != gdiag_uid)  )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_cen_close(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_cen_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	if( felica_pdata->cen_gpio_func )
+//		felica_pdata->cen_gpio_func(GPIOREAD, 0, &ret);
+//	else
+//		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->cen_gpio_func is NULL", __func__);
+//
+//	if( ret == SNFC_CEN_UNLOCK )
+//	{
+//		retparam = FELICA_CEN_UNLOCK;
+//		SNFC_LOG_INFO("[SNFC_DD] %s CEN [UnLock]", __func__);
+//	}
+//	else if( ret == SNFC_CEN_LOCK )
+//	{
+//		retparam = FELICA_CEN_LOCK;
+//		SNFC_LOG_INFO("[SNFC_DD] %s CEN [Lock]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_CEN_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_CEN_DATA_LEN;
+//}
+//
+//
+//static dev_t devid_snfc_rfs;
+//static struct cdev cdev_snfc_rfs;
+//static struct file_operations fops_snfc_rfs = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_rfs_open,
+//	.release	= snfc_rfs_close,
+//	.read		= snfc_rfs_read,
+//};
+//
+//void snfc_rfs_init(void)
+//{
+//	int ret;
+//	struct device *device_snfc_rfs;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_RFS					103
+//	devid_snfc_rfs = MKDEV(SNFC_MAJOR_RFS, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT, SNFC_RFS_NAME);
+//#else
+//	devid_snfc_rfs = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_rfs, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_RFS_NAME);
+//#endif
+//
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_rfs, &fops_snfc_rfs);
+//	ret = cdev_add(&cdev_snfc_rfs, devid_snfc_rfs, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_rfs = device_create(snfc_class, NULL, devid_snfc_rfs, NULL, SNFC_RFS_NAME);
+//	if( IS_ERR(device_snfc_rfs) )
+//	{
+//		cdev_del(&cdev_snfc_rfs);
+//		unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_rfs), MINOR(devid_snfc_rfs));
+//}
+//
+//void snfc_rfs_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_rfs);
+//	cdev_del(&cdev_snfc_rfs);
+//	unregister_chrdev_region(devid_snfc_rfs, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//}
+//
+//int snfc_rfs_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//
+//	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
+//		(uid != gdiag_uid)  )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_rfs_close(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_rfs_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	if( felica_pdata->rfs_gpio_func )
+//		felica_pdata->rfs_gpio_func(GPIOREAD, 0, &ret);
+//	else {
+//		FELICA_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
+//		return -EFAULT;
+//	}
+//
+//	if( ret == GPIO_VALUE_HIGH )
+//	{
+//		retparam = SNFC_RFS_STANDBY;
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s RFS is HIGH [standby]", __func__);
+//	}
+//	else if( ret == GPIO_VALUE_LOW )
+//	{
+//		retparam = SNFC_RFS_DETECTED;
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s RFS is LOW [detected]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_RFS_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_RFS_DATA_LEN;
+//}
+//
+//
+//static dev_t devid_snfc_intu;
+//static struct cdev cdev_snfc_intu;
+//static struct file_operations fops_snfc_intu = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_intu_open,
+//	.release	= snfc_intu_close,
+//	.read		= snfc_intu_read,
+//};
+//
+//void snfc_intu_init(void)
+//{
+//	int ret;
+//
+//	struct device *device_snfc_intu;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_INTU					104
+//	devid_snfc_intu = MKDEV(SNFC_MAJOR_INTU, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT, SNFC_INTU_NAME);
+//#else
+//	devid_snfc_intu = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_intu, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_INTU_NAME);
+//#endif
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_intu, &fops_snfc_intu);
+//	ret = cdev_add(&cdev_snfc_intu, devid_snfc_intu, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_intu = device_create(snfc_class, NULL, devid_snfc_intu, NULL, SNFC_INTU_NAME);
+//	if( IS_ERR(device_snfc_intu) )
+//	{
+//		cdev_del(&cdev_snfc_intu);
+//		unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_intu), MINOR(devid_snfc_intu));
+//}
+//
+//void snfc_intu_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_intu);
+//	cdev_del(&cdev_snfc_intu);
+//	unregister_chrdev_region(devid_snfc_intu, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//}
+//
+//int snfc_intu_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//	if( uid != gdiag_uid)
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gdiag_uid=[%d], ", __func__, uid, gdiag_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_intu_close(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_intu_read(struct file *file, char __user * buf, size_t len, loff_t * ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	ret = gpio_get_value(snfc_intu_pin);
+//
+//	if( ret == GPIO_VALUE_HIGH )
+//	{
+//		retparam = SNFC_INTU_HIGH;
+//		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is HIGH", __func__);
+//	}
+//	else if( ret == GPIO_VALUE_LOW )
+//	{
+//		retparam = SNFC_INTU_LOW;
+//		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is LOW", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_INTU_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_INTU_DATA_LEN;
+//}
+//
+//
+//static dev_t devid_snfc_intu_poll;
+//static struct cdev cdev_snfc_intu_poll;
+//static struct file_operations fops_snfc_intu_poll = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_intu_poll_open,
+//	.release	= snfc_intu_poll_close,
+//	.read		= snfc_intu_poll_read,
+//	.poll		= snfc_intu_poll_poll,
+//};
+//
+//irqreturn_t snfc_intu_irq_handler(int irq, void *dev_id)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	disable_irq_nosync(snfc_intu_irq);
+//
+//	schedule_delayed_work(&pgintu_irq->work, msecs_to_jiffies(SNFC_INTU_DELAY_TIME));
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return IRQ_HANDLED;
+//}
+//
+//void snfc_intu_irq_work(struct work_struct *work)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	enable_irq(snfc_intu_irq);
+//
+//	pgintu_irq->irq_done = 1;
+//	wake_up_interruptible(&pgintu_irq->read_wait);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//}
+//
+//void snfc_intu_poll_init(void)
+//{
+//	int ret;
+//
+//	struct device *device_snfc_intu_poll;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_INTU_POLL				105
+//	devid_snfc_intu_poll = MKDEV(SNFC_MAJOR_INTU_POLL, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT, SNFC_INTU_POLL_NAME);
+//#else
+//	devid_snfc_intu_poll = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_intu_poll, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_INTU_POLL_NAME);
+//#endif
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_intu_poll, &fops_snfc_intu_poll);
+//	ret = cdev_add(&cdev_snfc_intu_poll, devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_intu_poll = device_create(snfc_class, NULL, devid_snfc_intu_poll, NULL, SNFC_INTU_POLL_NAME);
+//	if( IS_ERR(device_snfc_intu_poll) )
+//	{
+//		cdev_del(&cdev_snfc_intu_poll);
+//		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	memset(pgintu_irq, 0x00, sizeof(struct snfc_intu_irqdata));
+//	INIT_DELAYED_WORK(&pgintu_irq->work, snfc_intu_irq_work);
+//	init_waitqueue_head(&pgintu_irq->read_wait);
+//	ret = request_irq(	snfc_intu_irq,
+//				snfc_intu_irq_handler,
+//				IRQF_TRIGGER_FALLING|IRQF_TRIGGER_RISING,
+//				SNFC_INTU_POLL_NAME,
+//				(void*)pgintu_irq);
+//	if( ret != 0 )
+//	{
+//		device_destroy(snfc_class, devid_snfc_intu_poll);
+//		cdev_del(&cdev_snfc_intu_poll);
+//		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(request_irq), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	ret = enable_irq_wake(snfc_intu_irq);
+//
+//	if( ret < 0 )
+//	{
+//		free_irq(snfc_intu_irq, (void*)pgintu_irq);
+//		device_destroy(snfc_class, devid_snfc_intu_poll);
+//		cdev_del(&cdev_snfc_intu_poll);
+//		unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(enable_irq_wake), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	pgintu_irq->irq_done = 0;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_intu_poll), MINOR(devid_snfc_intu_poll));
+//}
+//
+//void snfc_intu_poll_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	disable_irq(snfc_intu_irq);
+//
+//	free_irq(snfc_intu_irq, (void*)pgintu_irq);
+//
+//	device_destroy(snfc_class, devid_snfc_intu_poll);
+//	cdev_del(&cdev_snfc_intu_poll);
+//	unregister_chrdev_region(devid_snfc_intu_poll, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//}
+//
+//int snfc_intu_poll_open(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_intu_poll_close(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_intu_poll_read(struct file *file, char __user * buf, size_t len, loff_t * ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	if( !pgintu_irq->irq_done )
+//	{
+//		ret = wait_event_interruptible(pgintu_irq->read_wait, pgintu_irq->irq_done == 1);
+//		if( ret < 0 )
+//		{
+//			SNFC_LOG_WARN("[SNFC_DD] %s warn(wait_event_interruptible), ret=[%d], pgintu_irq->irq_done=[%x]", __func__, ret, pgintu_irq->irq_done);
+//			return -EINTR;
+//		}
+//	}
+//
+//	ret = gpio_get_value(snfc_intu_pin);
+//
+//	if( ret == GPIO_VALUE_HIGH )
+//	{
+//		retparam = SNFC_INTU_HIGH;
+//		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is HIGH", __func__);
+//	}
+//	else if( ret == GPIO_VALUE_LOW )
+//	{
+//		retparam = SNFC_INTU_LOW;
+//		SNFC_LOG_INFO("[SNFC_DD] %s INTU-PIN is LOW", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_INTU_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	pgintu_irq->irq_done = 0;
+//
+//	SNFC_LOG_INFO("[SNFC_DD] %s END", __func__);
+//	return SNFC_INTU_DATA_LEN;
+//}
+//
+//unsigned int snfc_intu_poll_poll(struct file *file, poll_table *wait)
+//{
+//	unsigned int mask = 0;
+//
+//	SNFC_LOG_DEBUG("%s START", __func__);
+//
+//	poll_wait(file, &pgintu_irq->read_wait, wait);
+//	if( pgintu_irq->irq_done )
+//	{
+//		mask = POLLIN | POLLRDNORM;
+//	}
+//	SNFC_LOG_DEBUG("%s END", __func__);
+//
+//	return (mask);
+//}
+//
+//
+//static dev_t devid_snfc_auto_polling;
+//static struct cdev cdev_snfc_auto_polling;
+//static struct file_operations fops_snfc_auto_polling = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_auto_polling_open,
+//	.release	= snfc_auto_polling_close,
+//	.read		= snfc_auto_polling_read,
+//};
+//
+//#define AUTO_POLLING_CHECK_DELAY 	10
+//static struct snfc_auto_polling *auto_polling;
+//
+//int snfc_auto_polling_check_func(void)
+//{
+//	int cen_status = 0;
+//	int rfs_status = 0;
+//	if( felica_pdata->cen_gpio_func )
+//		felica_pdata->cen_gpio_func(GPIOREAD, 0, &cen_status);
+//	else
+//		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->cen_gpio_func is NULL", __func__);
+//
+//	if( felica_pdata->rfs_gpio_func )
+//			felica_pdata->rfs_gpio_func(GPIOREAD, 0, &rfs_status);
+//	else
+//		SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
+//
+//	if( GPIO_VALUE_HIGH == rfs_status && FELICA_CEN_UNLOCK == cen_status && get_felica_uart_status() == 0)
+//	{
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s Done", __func__);
+//		return 1;
+//	}
+//
+//	return 0;
+//}
+//
+//static void snfc_auto_polling_work_func(struct work_struct *dummy)
+//{
+//
+//	if( snfc_auto_polling_check_func() == 1)
+//	{
+//		auto_polling->auto_polling_done = 1;
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s Done[%d] ", __func__, auto_polling->auto_polling_done );
+//		wake_up_interruptible(&auto_polling->auto_polling_wait);
+//	}
+//	else {
+//		auto_polling->auto_polling_done = 0;
+//		schedule_delayed_work(&auto_polling->snfc_auto_polling_work, msecs_to_jiffies(AUTO_POLLING_CHECK_DELAY));
+//	}
+//}
+//
+//void snfc_auto_polling_init(void)
+//{
+//	int ret;
+//	struct device *device_snfc_auto_polling;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_AUTO_POLLING					106
+//	devid_snfc_auto_polling = MKDEV(SNFC_MAJOR_AUTO_POLLING, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT, SNFC_AUTO_POLLING_NAME);
+//#else
+//	devid_snfc_auto_polling = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_auto_polling, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_AUTO_POLLING_NAME);
+//#endif
+//
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	auto_polling = kzalloc(sizeof(*auto_polling), GFP_KERNEL);
+//	if (!auto_polling) {
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(Cannot allocate device data)", __func__);
+//		return;
+//	}
+//	init_waitqueue_head(&auto_polling->auto_polling_wait);
+//	INIT_DELAYED_WORK(&auto_polling->snfc_auto_polling_work, snfc_auto_polling_work_func);
+//
+//	cdev_init(&cdev_snfc_auto_polling, &fops_snfc_auto_polling);
+//	ret = cdev_add(&cdev_snfc_auto_polling, devid_snfc_auto_polling, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		goto snfc_auto_polling_free;
+//	}
+//
+//	device_snfc_auto_polling = device_create(snfc_class, NULL, devid_snfc_auto_polling, NULL, SNFC_AUTO_POLLING_NAME);
+//	if( IS_ERR(device_snfc_auto_polling) )
+//	{
+//		cdev_del(&cdev_snfc_auto_polling);
+//		unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		goto snfc_auto_polling_free;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_auto_polling), MINOR(devid_snfc_auto_polling));
+//	return;
+//
+//snfc_auto_polling_free:
+//	kfree(auto_polling);
+//}
+//
+//void snfc_auto_polling_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_auto_polling);
+//	cdev_del(&cdev_snfc_auto_polling);
+//	unregister_chrdev_region(devid_snfc_auto_polling, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//}
+//
+//int snfc_auto_polling_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//
+//	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
+//		(uid != gdiag_uid)  )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_auto_polling_close(struct inode *inode, struct file *file)
+//{
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//	
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_auto_polling_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	if( snfc_auto_polling_check_func() == 1)
+//		retparam = 1;
+//	else {
+//		auto_polling->auto_polling_done = 0;
+//		schedule_delayed_work(&auto_polling->snfc_auto_polling_work, msecs_to_jiffies(AUTO_POLLING_CHECK_DELAY));
+//		ret = wait_event_interruptible(auto_polling->auto_polling_wait, auto_polling->auto_polling_done == 1);
+//		if( ret < 0 )
+//		{
+//			retparam = 0;
+//			cancel_delayed_work_sync(&auto_polling->snfc_auto_polling_work);
+//			SNFC_LOG_WARN("[SNFC_DD] %s warn(wait_event_interruptible), ret=[%d], auto_polling->auto_polling_done=[%x]", __func__, ret, auto_polling->auto_polling_done);
+//			return -EINTR;
+//		}
+//		else
+//			retparam = 1;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_AUTO_POLLING_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_AUTO_POLLING_DATA_LEN;
+//}
+//
+//
+//static dev_t devid_snfc_hsel;
+//static struct cdev cdev_snfc_hsel;
+//static struct file_operations fops_snfc_hsel = {
+//	.owner		= THIS_MODULE,
+//	.open		= snfc_hsel_open,
+//	.release	= snfc_hsel_close,
+//	.read		= snfc_hsel_read,
+//	.write		= snfc_hsel_write,
+//};
+//
+//void snfc_hsel_init(void)
+//{
+//	int ret;
+//	struct device *device_snfc_hsel;
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//#if 1
+//	#define SNFC_MAJOR_HSEL					107
+//	devid_snfc_hsel = MKDEV(SNFC_MAJOR_HSEL, SNFC_MINOR);
+//	ret = register_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT, SNFC_HSEL_NAME);
+//#else
+//	devid_snfc_hsel = MKDEV(SNFC_MAJOR, SNFC_MINOR);
+//	ret = alloc_chrdev_region(&devid_snfc_hsel, SNFC_BASEMINOR, SNFC_MINOR_COUNT, SNFC_HSEL_NAME);
+//#endif
+//
+//	if( ret < 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(alloc_chrdev_region), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	cdev_init(&cdev_snfc_hsel, &fops_snfc_hsel);
+//	ret = cdev_add(&cdev_snfc_hsel, devid_snfc_hsel, SNFC_MINOR_COUNT);
+//	if( ret < 0 )
+//	{
+//		unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(cdev_add), ret=[%d]", __func__, ret);
+//		return;
+//	}
+//
+//	device_snfc_hsel = device_create(snfc_class, NULL, devid_snfc_hsel, NULL, SNFC_HSEL_NAME);
+//	if( IS_ERR(device_snfc_hsel) )
+//	{
+//		cdev_del(&cdev_snfc_hsel);
+//		unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(device_create)", __func__);
+//		return;
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END, major=[%d], minor=[%d]", __func__, MAJOR(devid_snfc_hsel), MINOR(devid_snfc_hsel));
+//}
+//
+//void snfc_hsel_exit(void)
+//{
+//	SNFC_LOG_INFO("[SNFC_DD] %s START", __func__);
+//
+//	device_destroy(snfc_class, devid_snfc_hsel);
+//	cdev_del(&cdev_snfc_hsel);
+//	unregister_chrdev_region(devid_snfc_hsel, SNFC_MINOR_COUNT);
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//}
+//
+//int snfc_hsel_open(struct inode *inode, struct file *file)
+//{
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid_t uid;
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//#ifdef SNFC_CONFIG_ACCESS_RESTRICTION
+//	uid = __task_cred(current)->uid;
+//	if( (uid != gmfc_uid) && (uid != gdtl_uid) &&
+//        (uid != gdiag_uid)  )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s END, uid=[%d], gmfc_uid=[%d], gdiag_uid=[%d], gdtl_uid=[%d]", __func__, uid, gmfc_uid, gdiag_uid, gdtl_uid);
+//		return -EACCES;
+//	}
+//
+//#endif
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//int snfc_hsel_close(struct inode *inode, struct file *file)
+//{
+//	uid_t uid;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	uid = __task_cred(current)->uid;
+//	if( uid == gdtl_uid  )
+//	{
+//		if( felica_pdata->hsel_gpio_func )
+//			felica_pdata->hsel_gpio_func(GPIOWRITE, GPIO_VALUE_LOW, NULL);
+//		else {
+//			FELICA_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
+//			return -EFAULT;
+//		}
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s set hsel to LOW [standby]", __func__);
+//	}
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return 0;
+//}
+//
+//ssize_t snfc_hsel_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
+//{
+//	int ret;
+//	char retparam;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	if( felica_pdata->hsel_gpio_func )
+//		felica_pdata->hsel_gpio_func(GPIOREAD, 0, &ret);
+//	else
+//		FELICA_LOG_ERR("[FELICA_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
+//
+//	if( ret == GPIO_VALUE_HIGH )
+//	{
+//		retparam = SNFC_HSEL_WIRED;
+//		SNFC_LOG_INFO("[SNFC_DD] %s HSEL is HIGH [start]", __func__);
+//	}
+//	else if( ret == GPIO_VALUE_LOW )
+//	{
+//		retparam = SNFC_HSEL_WIRELESS;
+//		SNFC_LOG_INFO("[SNFC_DD] %s HSEL is LOW [standby]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(gpio_get_value), ret=[%d]", __func__, ret);
+//		return -EIO;
+//	}
+//
+//	ret = copy_to_user(buf, &retparam, SNFC_HSEL_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_to_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//	*ppos += 1;
+//
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_HSEL_DATA_LEN;
+//}
+//
+//ssize_t snfc_hsel_write(struct file *file, const char __user *data, size_t len, loff_t *ppos)
+//{
+//	char hsel;
+//	int ret;
+//	int setparam, rfs_status, need_delay_time;
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s START", __func__);
+//
+//	ret = copy_from_user(&hsel, data, SNFC_HSEL_DATA_LEN);
+//	if( ret != 0 )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), ret=[%d]", __func__, ret);
+//		return -EFAULT;
+//	}
+//
+//	mutex_lock(&uart_mutex);
+//	if( (hsel == SNFC_HSEL_WIRED) || (hsel == SNFC_HSEL_FOR_TARGET) || (hsel == SNFC_HSEL_FOR_INTU) )
+//	{
+//		need_delay_time = 1;
+//		if(hsel == SNFC_HSEL_FOR_INTU)
+//			need_delay_time = 0;
+//		else if(hsel == SNFC_HSEL_FOR_TARGET) {
+//			if( felica_pdata->rfs_gpio_func ) {
+//				felica_pdata->rfs_gpio_func(GPIOREAD, 0, &rfs_status);
+//				if( GPIO_VALUE_LOW == rfs_status )
+//					need_delay_time = 0;
+//			}
+//			else
+//				SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->rfs_gpio_func is NULL", __func__);
+//		}
+//
+//		if( get_felica_uart_status() == 1 ) {
+//			SNFC_LOG_ERR("[SNFC_DD] %s felica is useing uart", __func__);
+//			goto snfc_hsel_write_error;
+//		}
+//
+//		setparam = GPIO_VALUE_HIGH;
+//		if( felica_pdata->pon_gpio_func )
+//			felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
+//		else {
+//			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
+//			goto snfc_hsel_write_error;
+//		}
+//
+//		if( felica_pdata->hsel_gpio_func )
+//			felica_pdata->hsel_gpio_func(GPIOWRITE, setparam, NULL);
+//		else {
+//			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
+//			goto snfc_hsel_write_error;
+//		}
+//
+//		set_snfc_uart_status(1);
+//
+//		if( need_delay_time == 1 )
+//			msleep(10);
+//
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s Set HSEL to HIGH [start], case:[%d], need_delay_time:[%d]", __func__, hsel, need_delay_time);
+//	}
+//	else if( hsel == SNFC_HSEL_WIRELESS )
+//	{
+//		setparam = GPIO_VALUE_LOW;
+//		if( felica_pdata->pon_gpio_func )
+//			felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
+//		else {
+//			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->pon_gpio_func is NULL", __func__);
+//			goto snfc_hsel_write_error;
+//		}
+//
+//		if( felica_pdata->hsel_gpio_func )
+//			felica_pdata->hsel_gpio_func(GPIOWRITE, setparam, NULL);
+//		else {
+//			SNFC_LOG_ERR("[SNFC_DD] %s felica_pdata->hsel_gpio_func is NULL", __func__);
+//			goto snfc_hsel_write_error;
+//		}
+//
+//		set_snfc_uart_status(0);
+//
+//		SNFC_LOG_DEBUG("[SNFC_DD] %s Set HSEL to LOW [standby]", __func__);
+//	}
+//	else
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(copy_from_user), hsel=[%d]", __func__, hsel);
+//		goto snfc_hsel_write_error;
+//	}
+//
+//	mutex_unlock(&uart_mutex);
+//	SNFC_LOG_DEBUG("[SNFC_DD] %s END", __func__);
+//	return SNFC_HSEL_DATA_LEN;
+//
+//snfc_hsel_write_error:
+//	mutex_unlock(&uart_mutex);
+//	return -EINVAL;
+//
+//}
 
 
 void felica_initialize_pin(void)
@@ -3009,13 +3009,13 @@ void felica_register_device(void)
 	felica_int_poll_init();
 	felica_uid_init();
 
-	snfc_pon_init();
-	snfc_cen_init();
-	snfc_rfs_init();
-	snfc_intu_init();
-	snfc_intu_poll_init();
-	snfc_auto_polling_init();
-	snfc_hsel_init();
+//	snfc_pon_init();
+//	snfc_cen_init();
+//	snfc_rfs_init();
+//	snfc_intu_init();
+//	snfc_intu_poll_init();
+//	snfc_auto_polling_init();
+//	snfc_hsel_init();
 
 	FELICA_LOG_DEBUG("[FELICA_DD] %s END", __func__);
 }
@@ -3024,13 +3024,13 @@ void felica_deregister_device(void)
 {
 	FELICA_LOG_DEBUG("[FELICA_DD] %s START", __func__);
 
-	snfc_hsel_exit();
-	snfc_auto_polling_exit();
-	snfc_intu_poll_exit();
-	snfc_intu_exit();
-	snfc_rfs_exit();
-	snfc_cen_exit();
-	snfc_pon_exit();
+//	snfc_hsel_exit();
+//	snfc_auto_polling_exit();
+//	snfc_intu_poll_exit();
+//	snfc_intu_exit();
+//	snfc_rfs_exit();
+//	snfc_cen_exit();
+//	snfc_pon_exit();
 
 	felica_uid_exit();
 	felica_int_poll_exit();
@@ -3085,8 +3085,8 @@ static int felica_probe(struct platform_device *pdev)
 	felica_int_pin = pdata->int_gpio;
 	felica_int_irq = pdata->int_irq;
 
-	snfc_intu_pin = pdata->intu_gpio;
-	snfc_intu_irq = pdata->intu_irq;
+//	snfc_intu_pin = pdata->intu_gpio;
+//	snfc_intu_irq = pdata->intu_irq;
 
 	if (pdata->setup_gpio != NULL) {
 		FELICA_LOG_DEBUG("[FELICA_DD] %s, pdata->setup_gpio", __func__);
@@ -3100,15 +3100,15 @@ static int felica_probe(struct platform_device *pdev)
 		return PTR_ERR(felica_class);
 	}
 
-	snfc_class = class_create(THIS_MODULE, "snfc");
-	if( IS_ERR(snfc_class) )
-	{
-		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(class_create)", __func__);
-		return PTR_ERR(snfc_class);
-	}
+//	snfc_class = class_create(THIS_MODULE, "snfc");
+//	if( IS_ERR(snfc_class) )
+//	{
+//		SNFC_LOG_ERR("[SNFC_DD] %s ERROR(class_create)", __func__);
+//		return PTR_ERR(snfc_class);
+//	}
 	mutex_init(&uart_mutex);
 	gfelica_uart_status = 0;
-	gsnfc_uart_status = 0;
+//	gsnfc_uart_status = 0;
 	felica_initialize_pin();
 	felica_register_device();
 	felica_nl_init();
