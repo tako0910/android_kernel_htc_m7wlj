@@ -183,7 +183,7 @@ int felica_uart_open(struct inode *inode, struct file *file)
 #ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 	uid_t uid;
 #endif
-	int ret;
+//	int ret;
 	FELICA_LOG_INFO("[FELICA_DD] %s START", __func__);
 
 #ifdef FELICA_CONFIG_ACCESS_RESTRICTION

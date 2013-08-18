@@ -175,10 +175,10 @@ static char *usb_functions_rndis_adb_diag_modem[] = {
 static char *usb_functions_accessory[] = { "accessory" };
 static char *usb_functions_accessory_adb[] = { "accessory", "adb" };
 
-static char *usb_functions_audio[] = { "audio_source"};
-static char *usb_functions_audio_adb[] = { "audio_source", "adb" };
-static char *usb_functions_accessory_audio[] = { "accessory", "audio_source"};
-static char *usb_functions_accessory_audio_adb[] = { "accessory", "audio_source", "adb" };
+//static char *usb_functions_audio[] = { "audio_source"};
+//static char *usb_functions_audio_adb[] = { "audio_source", "adb" };
+//static char *usb_functions_accessory_audio[] = { "accessory", "audio_source"};
+//static char *usb_functions_accessory_audio_adb[] = { "accessory", "audio_source", "adb" };
 
 static char *usb_functions_projector[] = {
 	"mass_storage",
