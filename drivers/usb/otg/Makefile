@@ -19,6 +19,7 @@ obj-$(CONFIG_USB_ULPI)		+= ulpi.o
 obj-$(CONFIG_USB_ULPI_VIEWPORT)	+= ulpi_viewport.o
 obj-$(CONFIG_USB_MSM_OTG_72K)	+= msm72k_otg.o
 obj-$(CONFIG_USB_MSM_OTG)	+= msm_otg.o
+obj-$(CONFIG_USB_MSM_OTG_HTC)	+= msm_otg_htc.o
 obj-$(CONFIG_AB8500_USB)	+= ab8500-usb.o
 fsl_usb2_otg-objs		:= fsl_otg.o otg_fsm.o
 obj-$(CONFIG_FSL_USB2_OTG)	+= fsl_usb2_otg.o
