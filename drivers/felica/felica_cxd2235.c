@@ -1693,13 +1693,14 @@ int felica_uid_open(struct inode *inode, struct file *file)
 	cmdpos = (char*)(current->mm->arg_start);
 	memcpy( cmdline,cmdpos ,leng );
 	cmdline[leng] = '\0';
-
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 	if( ( strncmp(cmdline,gdiag_name,leng) != 0 ) &&
 		( strncmp(cmdline,PROCESS_NAME_FELICA_DAEMON,leng) != 0 ) )
 	{
 		FELICA_LOG_ERR("[FELICA_DD] %s ERROR, %s", __func__, cmdline);
 		return -EACCES;
 	}
+#endif
 	FELICA_LOG_DEBUG("[FELICA_DD] %s END", __func__);
 	return 0;
 }
