@@ -1,10 +1,12 @@
-config FELICA_DD
-	tristate "FELICA driver support"
-	help
-	  Say Y here if you want to support felica feature...
+config FELICA
+	bool "FeliCa Driver"
+	default n
 
-config FELICA_CXD2235_DD
-	tristate "FELICA_CXD2235 driver support"
-	help
-	  Say Y here if you want to support felica cxd2235 feature...
+config NFC_FELICA
+	bool "NFC FeliCa Driver"
+	default n
+
+config FELICA_NO_SECURE
+	bool "FeliCa no secure"
+	default n
 
