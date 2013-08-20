@@ -62,7 +62,7 @@ static struct felica_int_irqdata	*pgint_irq = &gint_irq;
 //	struct delayed_work 	snfc_auto_polling_work;
 //};
 #ifdef FELICA_CONFIG_ACCESS_RESTRICTION
-static uid_t gmfc_uid  = -1;f
+static uid_t gmfc_uid  = -1;
 static uid_t gmfl_uid  = -1;
 static uid_t grwm_uid  = -1;
 static uid_t gdiag_uid = -1;
