@@ -239,12 +239,13 @@ unsigned int felica_int_poll_poll(struct file *file, poll_table *wait);
 #define SET_FELICA_NAME_DIAG			_IOW(FELICA_MAGIC, 5,void *)
 #define SET_FELICA_UID_DTL				_IOW(FELICA_MAGIC, 6,void *)
 
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 void felica_uid_init(void);
 void felica_uid_exit(void);
 int felica_uid_open(struct inode *inode, struct file *file);
 int felica_uid_close(struct inode *inode, struct file *file);
 long felica_uid_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-
+#endif
 
 
 

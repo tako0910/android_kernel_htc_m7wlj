@@ -61,14 +61,17 @@ static struct felica_int_irqdata	*pgint_irq = &gint_irq;
 //	wait_queue_head_t	auto_polling_wait;
 //	struct delayed_work 	snfc_auto_polling_work;
 //};
-
-static uid_t gmfc_uid  = -1;
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
+static uid_t gmfc_uid  = -1;f
 static uid_t gmfl_uid  = -1;
 static uid_t grwm_uid  = -1;
 static uid_t gdiag_uid = -1;
+#endif
 static uid_t gdtl_uid  = -1;
 
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 static char gdiag_name[DIAG_NAME_MAXSIZE+1];
+#endif
 
 static struct felica_platform_data *felica_pdata;
 
@@ -1608,7 +1611,7 @@ unsigned int felica_int_poll_poll(struct file *file, poll_table *wait)
 }
 
 
-
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 static dev_t devid_felica_uid;
 static struct cdev cdev_felica_uid;
 static struct file_operations fops_felica_uid = {
@@ -1754,7 +1757,7 @@ long felica_uid_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	FELICA_LOG_DEBUG("[FELICA_DD] %s END", __func__);
 	return 0;
 }
-
+#endif
 
 
 
@@ -3008,7 +3011,9 @@ void felica_register_device(void)
 	felica_rws_init();
 	felica_int_init();
 	felica_int_poll_init();
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 	felica_uid_init();
+#endif
 
 //	snfc_pon_init();
 //	snfc_cen_init();
@@ -3032,8 +3037,9 @@ void felica_deregister_device(void)
 //	snfc_rfs_exit();
 //	snfc_cen_exit();
 //	snfc_pon_exit();
-
+#ifdef FELICA_CONFIG_ACCESS_RESTRICTION
 	felica_uid_exit();
+#endif
 	felica_int_poll_exit();
 	felica_int_exit();
 	felica_rws_exit();
