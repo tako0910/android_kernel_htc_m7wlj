@@ -40,14 +40,12 @@
 /******************************************************************************
  * log
  ******************************************************************************/
-
 #ifdef FELICA_DEBUG
 #define FELICA_LOG_DEBUG(fmt, args...) printk(KERN_INFO fmt, ## args)
 #else
 #define FELICA_LOG_DEBUG(fmt, args...)
 #endif
 #define FELICA_LOG_ERR(fmt, args...) printk(KERN_ERR fmt, ## args)
-
 /******************************************************************************
  * global variable
  ******************************************************************************/
@@ -93,6 +91,9 @@ static uid_t gnfc_uid = -1;
 struct file *pg_tty;
 static int gnfc_open_cnt;
 #endif /* CONFIG_NFC_FELICA */
+
+static struct felica_platform_data *felica_pdata;
+
 /* package name's storage for access restriction */
 static char gdiag_name[DIAG_NAME_MAXSIZE + 1];
 static uid_t gant_uid = -1;
@@ -1119,7 +1120,8 @@ static int felica_pon_close(struct inode *inode, struct file *file)
 #if defined(CONFIG_ARCH_EXYNOS)
 	gpio_set_value(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
 #elif defined(CONFIG_ARCH_APQ8064)
-	ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	//ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	felica_pdata->pon_gpio_func(GPIOWRITE, GPIO_VALUE_LOW, NULL);
 #endif
 
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);
@@ -1139,7 +1141,8 @@ static ssize_t felica_pon_read(struct file *file, char __user *buf, size_t len,
 #if defined(CONFIG_ARCH_EXYNOS)
 	ret = gpio_get_value(GPIO_PINID_FELICA_PON);
 #elif defined(CONFIG_ARCH_APQ8064)
-	ret = ice_gpiox_get(GPIO_PINID_FELICA_PON);
+	//ret = ice_gpiox_get(GPIO_PINID_FELICA_PON);
+	felica_pdata->pon_gpio_func(GPIOREAD, 0, &ret);
 #else
 	ret = gpio_get_value(GPIO_PINID_FELICA_PON);
 #endif
@@ -1204,7 +1207,8 @@ static ssize_t felica_pon_write(struct file *file, const char __user *data,
 #if defined(CONFIG_ARCH_EXYNOS)
 	gpio_set_value(GPIO_PINID_FELICA_PON, setparam);
 #elif defined(CONFIG_ARCH_APQ8064)
-	ice_gpiox_set(GPIO_PINID_FELICA_PON, setparam);
+	//ice_gpiox_set(GPIO_PINID_FELICA_PON, setparam);
+	felica_pdata->pon_gpio_func(GPIOWRITE, setparam, NULL);
 #endif
 
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);
@@ -2424,7 +2428,8 @@ static void felica_initialize_pin(void)
 #if defined(CONFIG_ARCH_EXYNOS)
 	gpio_set_value(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
 #elif defined(CONFIG_ARCH_APQ8064)
-	ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	//ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	felica_pdata->pon_gpio_func(GPIOWRITE, GPIO_VALUE_LOW, NULL);
 #endif
 
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);
@@ -2440,7 +2445,8 @@ static void felica_finalize_pin(void)
 #if defined(CONFIG_ARCH_EXYNOS)
 	gpio_set_value(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
 #elif defined(CONFIG_ARCH_APQ8064)
-	ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	//ice_gpiox_set(GPIO_PINID_FELICA_PON, GPIO_VALUE_LOW);
+	felica_pdata->pon_gpio_func(GPIOWRITE, GPIO_VALUE_LOW, NULL);
 #endif
 
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);

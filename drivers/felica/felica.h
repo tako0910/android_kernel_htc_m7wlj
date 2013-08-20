@@ -31,12 +31,14 @@
 #include <mach/gpio-exynos.h>
 #include <plat/gpio-cfg.h>
 #elif defined(CONFIG_ARCH_APQ8064)
-#include "../../arch/arm/mach-msm/board-8064.h"
-#include <mach/apq8064-gpio.h>
+//#include "../../arch/arm/mach-msm/board-8064.h"
+//#include <mach/apq8064-gpio.h>
 #include <mach/gpiomux.h>
-#include <linux/barcode_emul.h>
+//#include <linux/barcode_emul.h>
 #endif
 
+#define  GPIOWRITE	0
+#define  GPIOREAD	1
 
 /******************************************************************************
  * log
@@ -53,6 +55,23 @@
  ******************************************************************************/
 #define P2P_FPGA_ALWAYS_ON
 
+struct felica_platform_data {
+	unsigned int int_irq;
+	unsigned int int_gpio;
+	unsigned int intu_irq;
+	unsigned int intu_gpio;
+	void (*setup_gpio)(void);
+	void (*sleep_gpio)(void);
+	void (*wakeup_gpio)(void);
+	void (*pon_gpio_func)(int rwtype, int wvalue, int *rvalue);
+	void (*cen_dtyp_d_func)(int rwtype, int wvalue, int *rvalue);
+	void (*cen_dtyp_cp_func)(int rwtype, int wvalue, int *rvalue);
+	void (*cen_gpio_func)(int rwtype, int wvalue, int *rvalue);
+	void (*rfs_gpio_func)(int rwtype, int wvalue, int *rvalue);
+	void (*int_gpio_func)(int rwtype, int wvalue, int *rvalue);
+	void (*con_gpio_func)(int rwtype, int wvalue, int *rvalue);
+	void (*hsel_gpio_func)(int rwtype, int wvalue, int *rvalue);
+};
 
 
 
@@ -173,7 +192,7 @@ static int felica_uart_open_wait_for_polling(void);
 #if defined(CONFIG_ARCH_EXYNOS)
 #define GPIO_PINID_FELICA_PON			EXYNOS5410_GPJ2(7)
 #elif defined(CONFIG_ARCH_APQ8064)
-#define GPIO_PINID_FELICA_PON			FPGA_GPIO_FELICA_PON
+#define GPIO_PINID_FELICA_PON			25
 #endif
 #define FELICA_PON_DATA_LEN				1
 #define FELICA_PON_WIRELESS				0
@@ -244,7 +263,7 @@ static ssize_t felica_cen_write(struct file *file, const char __user *data,\
 #if defined(CONFIG_ARCH_EXYNOS)
 #define GPIO_PINID_FELICA_RFS			EXYNOS5410_GPJ3(0)
 #elif defined(CONFIG_ARCH_APQ8064)
-#define GPIO_PINID_FELICA_RFS			GPIO_FELICA_RFS
+#define GPIO_PINID_FELICA_RFS			10
 #endif
 #define FELICA_RFS_DATA_LEN				1
 #define FELICA_RFS_STANDBY				0
@@ -298,7 +317,7 @@ static ssize_t felica_rws_write(struct file *file, const char __user *data, \
 #define GPIO_PINID_FELICA_INT_REV03			EXYNOS5410_GPX1(3) /* rev0.3 */
 #define GPIO_PINID_FELICA_INT_REV00			EXYNOS5410_GPX1(6) /* rev0.0 */
 #elif defined(CONFIG_ARCH_APQ8064)
-#define GPIO_PINID_FELICA_INT_REV03			GPIO_FELICA_INT
+#define GPIO_PINID_FELICA_INT_REV03			24
 #endif
 #define FELICA_INT_DATA_LEN				1
 #define FELICA_INT_DELAY_TIME			3
