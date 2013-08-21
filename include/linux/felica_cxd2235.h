@@ -30,16 +30,16 @@
 
 #define FELICA_LOG_WARN(fmt, args...) printk(KERN_WARNING fmt,## args)
 
-#ifdef SNFC_DEBUG
-#define SNFC_LOG_DEBUG(fmt, args...) printk(KERN_INFO fmt,## args)
-#else
-#define SNFC_LOG_DEBUG(fmt, args...)
-#endif
-#define SNFC_LOG_ERR(fmt, args...) printk(KERN_ERR fmt,## args)
-
-#define SNFC_LOG_INFO(fmt, args...) printk(KERN_INFO fmt,## args)
-
-#define SNFC_LOG_WARN(fmt, args...) printk(KERN_WARNING fmt,## args)
+// #ifdef SNFC_DEBUG
+// #define SNFC_LOG_DEBUG(fmt, args...) printk(KERN_INFO fmt,## args)
+// #else
+// #define SNFC_LOG_DEBUG(fmt, args...)
+// #endif
+// #define SNFC_LOG_ERR(fmt, args...) printk(KERN_ERR fmt,## args)
+// 
+// #define SNFC_LOG_INFO(fmt, args...) printk(KERN_INFO fmt,## args)
+// 
+// #define SNFC_LOG_WARN(fmt, args...) printk(KERN_WARNING fmt,## args)
 
 
 // #define FELICA_CONFIG_ACCESS_RESTRICTION
@@ -68,10 +68,10 @@ struct felica_platform_data {
 #define FELICA_BASEMINOR				0 
 #define FELICA_MINOR_COUNT				1 
 
-#define SNFC_MAJOR					10 
-#define SNFC_MINOR					0
-#define SNFC_BASEMINOR					0 
-#define SNFC_MINOR_COUNT					1 
+// #define SNFC_MAJOR					10 
+// #define SNFC_MINOR					0
+// #define SNFC_BASEMINOR					0 
+// #define SNFC_MINOR_COUNT					1 
 
 #define GPIO_VALUE_HIGH					1
 #define GPIO_VALUE_LOW					0
@@ -251,128 +251,128 @@ long felica_uid_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 
 
-#define SNFC_PON_NAME					"snfc_pon"
-#define GPIO_PINID_SNFC_PON				25	
-#define SNFC_PON_DATA_LEN				1
-#define SNFC_PON_WIRELESS				0
-#define SNFC_PON_WIRED					1
-
-void snfc_pon_init(void);
-void snfc_pon_exit(void);
-int snfc_pon_open(struct inode *inode, struct file *file);
-int snfc_pon_close(struct inode *inode, struct file *file);
-ssize_t snfc_pon_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-ssize_t snfc_pon_write(struct file *file, const char __user *data, size_t len, loff_t *ppos);
-
-
-
-
-
-
-#define SNFC_CEN_NAME					"snfc_cen"
-#define GPIO_PINID_SNFC_CEN				10	
-#define SNFC_CEN_DATA_LEN				1
-#define SNFC_CEN_STANDBY				0
-#define SNFC_CEN_DETECTED				1
-#define SNFC_CEN_DATA_LEN				1
-#define SNFC_CEN_LOCK					0
-#define SNFC_CEN_UNLOCK					1
-
-void snfc_cen_init(void);
-void snfc_cen_exit(void);
-int snfc_cen_open(struct inode *inode, struct file *file);
-int snfc_cen_close(struct inode *inode, struct file *file);
-ssize_t snfc_cen_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-
-
-
-
-
-
-#define SNFC_RFS_NAME					"snfc_rfs"
-#define GPIO_PINID_SNFC_RFS				10	
-#define SNFC_RFS_DATA_LEN				1
-#define SNFC_RFS_STANDBY				0
-#define SNFC_RFS_DETECTED				1
-#define SNFC_RFS_DATA_LEN				1
-#define SNFC_RFS_STANDBY				0
-#define SNFC_RFS_DETECTED				1
-
-void snfc_rfs_init(void);
-void snfc_rfs_exit(void);
-int snfc_rfs_open(struct inode *inode, struct file *file);
-int snfc_rfs_close(struct inode *inode, struct file *file);
-ssize_t snfc_rfs_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-
-
-
-
-
-
-#define SNFC_INTU_NAME					"snfc_intu"
-#define GPIO_PINID_SNFC_INTU			24	
-#define SNFC_INTU_DATA_LEN				1
-#define SNFC_INTU_DELAY_TIME			3
-#define SNFC_INTU_LOW					0
-#define SNFC_INTU_HIGH					1
-
-void snfc_intu_init(void);
-void snfc_intu_exit(void);
-int snfc_intu_open(struct inode *inode, struct file *file);
-int snfc_intu_close(struct inode *inode, struct file *file);
-ssize_t snfc_intu_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-
-
-
-
-
-
-#define SNFC_INTU_POLL_NAME			"snfc_intu_polling"
-
-irqreturn_t snfc_intu_irq_handler(int irq, void *dev_id);
-void snfc_intu_irq_work(struct work_struct *work);
-void snfc_intu_poll_init(void);
-void snfc_intu_poll_exit(void);
-int snfc_intu_poll_open(struct inode *inode, struct file *file);
-int snfc_intu_poll_close(struct inode *inode, struct file *file);
-ssize_t snfc_intu_poll_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-unsigned int snfc_intu_poll_poll(struct file *file, poll_table *wait);
-
-
-
-
-
-#define SNFC_AUTO_POLLING_NAME					"snfc_auto_polling"
-#define GPIO_PINID_SNFC_AUTO_POLLING				10	
-#define SNFC_AUTO_POLLING_DATA_LEN				1
-#define SNFC_AUTO_POLLING_STANDBY				0
-#define SNFC_AUTO_POLLING_DETECTED				1
-
-void snfc_auto_polling_init(void);
-void snfc_auto_polling_exit(void);
-int snfc_auto_polling_open(struct inode *inode, struct file *file);
-int snfc_auto_polling_close(struct inode *inode, struct file *file);
-ssize_t snfc_auto_polling_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-
-
-
-
-
-
-#define SNFC_HSEL_NAME					"snfc_hsel"
-#define GPIO_PINID_SNFC_HSEL				25	
-#define SNFC_HSEL_DATA_LEN				1
-#define SNFC_HSEL_WIRELESS				0
-#define SNFC_HSEL_WIRED					1
-#define SNFC_HSEL_FOR_TARGET				3
-#define SNFC_HSEL_FOR_INTU				4
-
-void snfc_hsel_init(void);
-void snfc_hsel_exit(void);
-int snfc_hsel_open(struct inode *inode, struct file *file);
-int snfc_hsel_close(struct inode *inode, struct file *file);
-ssize_t snfc_hsel_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
-ssize_t snfc_hsel_write(struct file *file, const char __user *data, size_t len, loff_t *ppos);
+// #define SNFC_PON_NAME					"snfc_pon"
+// #define GPIO_PINID_SNFC_PON				25	
+// #define SNFC_PON_DATA_LEN				1
+// #define SNFC_PON_WIRELESS				0
+// #define SNFC_PON_WIRED					1
+// 
+// void snfc_pon_init(void);
+// void snfc_pon_exit(void);
+// int snfc_pon_open(struct inode *inode, struct file *file);
+// int snfc_pon_close(struct inode *inode, struct file *file);
+// ssize_t snfc_pon_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// ssize_t snfc_pon_write(struct file *file, const char __user *data, size_t len, loff_t *ppos);
+// 
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_CEN_NAME					"snfc_cen"
+// #define GPIO_PINID_SNFC_CEN				10	
+// #define SNFC_CEN_DATA_LEN				1
+// #define SNFC_CEN_STANDBY				0
+// #define SNFC_CEN_DETECTED				1
+// #define SNFC_CEN_DATA_LEN				1
+// #define SNFC_CEN_LOCK					0
+// #define SNFC_CEN_UNLOCK					1
+// 
+// void snfc_cen_init(void);
+// void snfc_cen_exit(void);
+// int snfc_cen_open(struct inode *inode, struct file *file);
+// int snfc_cen_close(struct inode *inode, struct file *file);
+// ssize_t snfc_cen_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// 
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_RFS_NAME					"snfc_rfs"
+// #define GPIO_PINID_SNFC_RFS				10	
+// #define SNFC_RFS_DATA_LEN				1
+// #define SNFC_RFS_STANDBY				0
+// #define SNFC_RFS_DETECTED				1
+// #define SNFC_RFS_DATA_LEN				1
+// #define SNFC_RFS_STANDBY				0
+// #define SNFC_RFS_DETECTED				1
+// 
+// void snfc_rfs_init(void);
+// void snfc_rfs_exit(void);
+// int snfc_rfs_open(struct inode *inode, struct file *file);
+// int snfc_rfs_close(struct inode *inode, struct file *file);
+// ssize_t snfc_rfs_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// 
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_INTU_NAME					"snfc_intu"
+// #define GPIO_PINID_SNFC_INTU			24	
+// #define SNFC_INTU_DATA_LEN				1
+// #define SNFC_INTU_DELAY_TIME			3
+// #define SNFC_INTU_LOW					0
+// #define SNFC_INTU_HIGH					1
+// 
+// void snfc_intu_init(void);
+// void snfc_intu_exit(void);
+// int snfc_intu_open(struct inode *inode, struct file *file);
+// int snfc_intu_close(struct inode *inode, struct file *file);
+// ssize_t snfc_intu_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// 
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_INTU_POLL_NAME			"snfc_intu_polling"
+// 
+// irqreturn_t snfc_intu_irq_handler(int irq, void *dev_id);
+// void snfc_intu_irq_work(struct work_struct *work);
+// void snfc_intu_poll_init(void);
+// void snfc_intu_poll_exit(void);
+// int snfc_intu_poll_open(struct inode *inode, struct file *file);
+// int snfc_intu_poll_close(struct inode *inode, struct file *file);
+// ssize_t snfc_intu_poll_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// unsigned int snfc_intu_poll_poll(struct file *file, poll_table *wait);
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_AUTO_POLLING_NAME					"snfc_auto_polling"
+// #define GPIO_PINID_SNFC_AUTO_POLLING				10	
+// #define SNFC_AUTO_POLLING_DATA_LEN				1
+// #define SNFC_AUTO_POLLING_STANDBY				0
+// #define SNFC_AUTO_POLLING_DETECTED				1
+// 
+// void snfc_auto_polling_init(void);
+// void snfc_auto_polling_exit(void);
+// int snfc_auto_polling_open(struct inode *inode, struct file *file);
+// int snfc_auto_polling_close(struct inode *inode, struct file *file);
+// ssize_t snfc_auto_polling_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// 
+// 
+// 
+// 
+// 
+// 
+// #define SNFC_HSEL_NAME					"snfc_hsel"
+// #define GPIO_PINID_SNFC_HSEL				25	
+// #define SNFC_HSEL_DATA_LEN				1
+// #define SNFC_HSEL_WIRELESS				0
+// #define SNFC_HSEL_WIRED					1
+// #define SNFC_HSEL_FOR_TARGET				3
+// #define SNFC_HSEL_FOR_INTU				4
+// 
+// void snfc_hsel_init(void);
+// void snfc_hsel_exit(void);
+// int snfc_hsel_open(struct inode *inode, struct file *file);
+// int snfc_hsel_close(struct inode *inode, struct file *file);
+// ssize_t snfc_hsel_read(struct file *file, char __user *buf, size_t len, loff_t *ppos);
+// ssize_t snfc_hsel_write(struct file *file, const char __user *data, size_t len, loff_t *ppos);
 
 
 
