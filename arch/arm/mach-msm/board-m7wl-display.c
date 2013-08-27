@@ -1775,7 +1775,7 @@ static unsigned char m7wl_shrink_pwm(int val)
 
 	pwm_value = shrink_br; 
 
-	PR_DISP_INFO("brightness orig=%d, transformed=%d\n", val, shrink_br);
+	PR_DISP_DEBUG("brightness orig=%d, transformed=%d\n", val, shrink_br);
 
 	return shrink_br;
 }

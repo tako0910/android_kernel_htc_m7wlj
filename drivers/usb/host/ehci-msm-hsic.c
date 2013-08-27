@@ -1169,7 +1169,7 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
 	msm_hsic_suspend_timestamp = 0;
 	
 
-	dev_info(mehci->dev, "HSIC-USB in low power mode\n");
+	// dev_info(mehci->dev, "HSIC-USB in low power mode\n");
 
 	return 0;
 }
@@ -1281,7 +1281,7 @@ skip_phy_resume:
 	spin_unlock_irqrestore(&mehci->wakeup_lock, flags);
 	
 
-	dev_info(mehci->dev, "HSIC-USB exited from low power mode\n");
+	// dev_info(mehci->dev, "HSIC-USB exited from low power mode\n");
 
 	return 0;
 }
