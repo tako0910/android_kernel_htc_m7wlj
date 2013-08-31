@@ -1090,15 +1090,8 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.critical_alarm_vol_cols = sizeof(critical_alarm_voltage_mv) / sizeof(int),
 	.overload_vol_thr_mv = 4000,
 	.overload_curr_thr_ma = 0,
-	
-#ifdef CONFIG_SMB349_CHARGER
-	.icharger.name = "smb349",
-	.icharger.sw_safetytimer = 1,
-	.icharger.set_limit_charge_enable = smb349_limit_charge_enable,
-	.icharger.is_batt_charge_enable =  smb349_is_batt_charge_enable,
-	.icharger.get_attr_text = pm8921_charger_get_attr_text_with_ext_charger,
-	.icharger.enable_5v_output = smb349_enable_5v_output,
-#else
+	.smooth_chg_full_delay_min = 1,
+
 	.icharger.name = "pm8921",
 	.icharger.sw_safetytimer = 0,
 	.icharger.set_limit_charge_enable = pm8921_limit_charge_enable,
@@ -1280,6 +1273,8 @@ struct pm8921_bms_battery_data  bms_battery_data_id_1 = {
 	.rbatt_est_ocv_lut	= &rbatt_est_ocv_id_1,
 	.default_rbatt_mohm	= 250,
 	.delta_rbatt_mohm	= 0,
+	.level_ocv_update_stop_begin	= 10,
+	.level_ocv_update_stop_end	= 20,
 };
 
 
@@ -1393,6 +1388,8 @@ struct pm8921_bms_battery_data  bms_battery_data_id_2 = {
 	.rbatt_est_ocv_lut	= &rbatt_est_ocv_id_2,
 	.default_rbatt_mohm	= 250,
 	.delta_rbatt_mohm	= 0,
+	.level_ocv_update_stop_begin	= 10,
+	.level_ocv_update_stop_end	= 20,
 };
 
 static struct htc_battery_cell htc_battery_cells[] = {
@@ -2652,6 +2649,7 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = {
 		.tw_pin_mask = 0x0088,
 		.sensor_id = SENSOR_ID_CHECKING_EN | 0x0,
 		.psensor_detection = 1,
+		.reduce_report_level = {60, 60, 50, 0, 0},
 		.virtual_key = m7_vk_data,
 		.lpm_power = synaptics_power_LPM,
 		.config = {0x33, 0x32, 0x00, 0x08, 0x00, 0x7F, 0x03, 0x1E,
@@ -2713,6 +2711,7 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = {
 		.tw_pin_mask = 0x0088,
 		.sensor_id = SENSOR_ID_CHECKING_EN | 0x80,
 		.psensor_detection = 1,
+		.reduce_report_level = {60, 60, 50, 0, 0},
 		.virtual_key = m7_vk_data,
 		.lpm_power = synaptics_power_LPM,
 		.config = {0x33, 0x32, 0x01, 0x08, 0x00, 0x7F, 0x03, 0x1E,
@@ -2774,6 +2773,7 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = {
 		.tw_pin_mask = 0x0088,
 		.sensor_id = SENSOR_ID_CHECKING_EN | 0x08,
 		.psensor_detection = 1,
+		.reduce_report_level = {60, 60, 50, 0, 0},
 		.virtual_key = m7_vk_data,
 		.lpm_power = synaptics_power_LPM,
 		.config = {0x33, 0x32, 0x02, 0x08, 0x00, 0x7F, 0x03, 0x1E,
@@ -3960,9 +3960,10 @@ static struct cm3629_platform_data cm36282_pdata_sk2 = {
 	.ps1_thd_set = 0x15,
 	.ps1_thd_no_cal = 0x90,
 	.ps1_thd_with_cal = 0xD,
+	.ps_th_add = 5,
 	.ps_calibration_rule = 1,
-	.ps_conf1_val = CM3629_PS_DR_1_320 | CM3629_PS_IT_1_6T |
-			CM3629_PS1_PERS_3,
+	.ps_conf1_val = CM3629_PS_DR_1_40 | CM3629_PS_IT_1_6T |
+			CM3629_PS1_PERS_2,
 	.ps_conf2_val = CM3629_PS_ITB_1 | CM3629_PS_ITR_1 |
 			CM3629_PS2_INT_DIS | CM3629_PS1_INT_DIS,
 	.ps_conf3_val = CM3629_PS2_PROL_32,
@@ -4003,9 +4004,10 @@ static struct cm3629_platform_data cm36282_pdata_r8 = {
 	.ps1_thd_set = 0x15,
 	.ps1_thd_no_cal = 0x90,
 	.ps1_thd_with_cal = 0xD,
+	.ps_th_add = 5,
 	.ps_calibration_rule = 1,
-	.ps_conf1_val = CM3629_PS_DR_1_320 | CM3629_PS_IT_1_6T |
-			CM3629_PS1_PERS_3,
+	.ps_conf1_val = CM3629_PS_DR_1_40 | CM3629_PS_IT_1_6T |
+			CM3629_PS1_PERS_2,
 	.ps_conf2_val = CM3629_PS_ITB_1 | CM3629_PS_ITR_1 |
 			CM3629_PS2_INT_DIS | CM3629_PS1_INT_DIS,
 	.ps_conf3_val = CM3629_PS2_PROL_32,
@@ -6469,13 +6471,10 @@ static void __init m7wlj_common_init(void)
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 #endif
-#if 1 
-	if ((get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) ||
-		(!(get_kernel_flag() & KERNEL_FLAG_TEST_PWR_SUPPLY) && (!get_tamper_sf()))) {
+	if (get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) {
 		htc_monitor_init();
 		htc_pm_monitor_init();
 	}
-#endif
 }
 
 static void __init m7wlj_allocate_memory_regions(void)

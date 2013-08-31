@@ -2294,7 +2294,7 @@ int mmc_suspend_host(struct mmc_host *host)
 		}
 	}
 #ifdef CONFIG_PM_RUNTIME
-       if (mmc_bus_manual_resume(host))
+       if (mmc_bus_manual_resume(host) && !host->bkops_started)
                host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
 #endif
 
@@ -2373,17 +2373,30 @@ int mmc_bkops_resume_task(struct mmc_host *host)
 						__func__, status, err, host->bkops_timer.need_bkops);
 					err = -EBUSY;
 				} else {
-					if (host->bkops_timer.need_bkops == 0)
-						host->bkops_count++;
 					pr_warning("%s: card ready status %x needbkops %u bkops_count %d\n",
 						__func__, status, host->bkops_timer.need_bkops, host->bkops_count);
 				}
 			}
 		} else {
-			host->bkops_count++;
-			pr_warning("%s: needbkops %u, bkops_count %d\n",
+			pr_debug("%s: needbkops %u, bkops_count %d\n",
 						__func__, host->bkops_timer.need_bkops, host->bkops_count);
-			host->bkops_timer.need_bkops = 0;
+			if (host->long_bkops && (mmc_read_bkops_status(host->card) == 0)) {
+				host->bkops_count++;
+				pr_info("%s: bkops_status %d, count %d\n", mmc_hostname(host),
+					host->card->ext_csd.raw_bkops_status, host->bkops_count);
+				if (host->card->ext_csd.raw_bkops_status == EXT_CSD_BKOPS_LEVEL_0) {
+					if (host->bkops_count > 20) {
+						pr_debug("%s: set need_bkops 0\n", mmc_hostname(host));
+						host->bkops_timer.need_bkops = 0;
+						host->bkops_count = 0;
+					}
+				} else
+					host->bkops_count = 0;
+			} else {
+				pr_debug("%s: set need_bkops 0\n", mmc_hostname(host));
+				host->bkops_timer.need_bkops = 0;
+				host->bkops_count = 0;
+			}
 		}
 	} else
 		pr_err("%s: mmc_send_status fail err= %d\n", __func__, err);
@@ -2406,7 +2419,8 @@ int mmc_resume_host(struct mmc_host *host)
 
 	mmc_bus_get(host);
 	if (mmc_bus_manual_resume(host)) {
-		host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
+		if (!host->bkops_started)
+			host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
 		mmc_bus_put(host);
 		return 0;
 	}
