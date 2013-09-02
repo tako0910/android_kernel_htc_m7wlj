@@ -61,7 +61,7 @@ struct eth_dev {
 #define RX_EXTRA	20	
 
 #define DEFAULT_QLEN	2	
-#define ETH_FRAME_LEN_MAX       9000
+// #define ETH_FRAME_LEN_MAX       9000
 
 #ifdef CONFIG_USB_GADGET_DUALSPEED
 
