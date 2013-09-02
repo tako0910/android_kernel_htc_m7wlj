@@ -1430,7 +1430,6 @@ static struct htc_battery_cell htc_battery_cells[] = {
 		.gauge_param = &bms_battery_data_id_1,
 	},
 };
-#endif 
 
 #define _GET_REGULATOR(var, name) do {				\
 	var = regulator_get(NULL, name);			\
