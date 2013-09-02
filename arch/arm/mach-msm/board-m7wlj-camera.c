@@ -3588,6 +3588,7 @@ struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_0x20_ov2722[] = {
 };
 
 #endif
+#endif
 
 enum camera_sensor_id {
 	CAMERA_SENSOR_ID_ST_4M,
