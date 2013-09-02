@@ -2591,17 +2591,6 @@ static int synaptics_power_LPM(int on)
 			mutex_unlock(&tp_lock);
 			return rc;
 		}
-		rc = regulator_set_optimum_mode(tp_reg_l21, 100000);
-		if (rc < 0)
-			pr_err("[TP] %s: leave LPM,set_optimum_mode l21 failed, rc=%d\n", __func__, rc);
-
-		rc = regulator_enable(tp_reg_l21);
-		if (rc) {
-			pr_err("'%s' regulator enable failed, rc=%d\n",
-				"tp_reg_l21", rc);
-			mutex_unlock(&tp_lock);
-			return rc;
-		}
 		pr_info("[TP] %s: leave LPM mode\n", __func__);
 		usleep(10);
 	}
@@ -3937,7 +3926,7 @@ static int capella_pl_sensor_lpm_power(uint8_t enable)
 			pr_info("[PS][cm3629] %s: pl_sensor_lock unlock 5\n", __func__);
 			return rc;
 		}
-		pr_info("[PS][cm3629] %s: leave lpm OK\n", __func__);
+		pr_info("[PS][cm3629] %s: leave lmp,OK\n", __func__);
 		usleep(10);
 	}
 	mutex_unlock(&pl_sensor_lock);
