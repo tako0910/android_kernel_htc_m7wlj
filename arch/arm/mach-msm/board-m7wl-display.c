@@ -1042,7 +1042,7 @@ static int set_cabc_Camera_cmds_count = 0;
 static int cabc_mode = 0;
 static int cur_cabc_mode = 0;
 static struct mutex set_cabc_mutex;
-void m7_set_cabc (struct msm_fb_data_type *mfd, int mode);
+void m7wl_set_cabc (struct msm_fb_data_type *mfd, int mode);
 #endif
 static unsigned int pwm_min = 6;
 static unsigned int pwm_default = 81 ;
@@ -1929,7 +1929,7 @@ static void m7wl_set_backlight(struct msm_fb_data_type *mfd)
 #ifdef CONFIG_FB_MSM_CABC_LEVEL_CONTROL
 	
 	if (cabc_mode == 3) {
-		m7_set_cabc(mfd, cabc_mode);
+		m7wl_set_cabc(mfd, cabc_mode);
 	}
 #endif
 	if ((mfd->bl_level) == 0) {
