@@ -800,7 +800,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mem_hid = MEMTYPE_EBI1,
 #endif
 	.cont_splash_enabled = 0x00,
-	.mdp_gamma = m7_mdp_gamma,
+	.mdp_gamma = m7wl_mdp_gamma,
 	.mdp_iommu_split_domain = 1,
 };
 
@@ -1695,7 +1695,7 @@ static int __devinit m7wl_lcd_probe(struct platform_device *pdev)
 	PR_DISP_INFO("%s\n", __func__);
 	return 0;
 }
-static int m7_display_on(struct platform_device *pdev)
+static int m7wl_display_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 
