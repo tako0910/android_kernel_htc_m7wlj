@@ -28,9 +28,13 @@
 #include <mach/gpiomux.h>
 #include <mach/restart.h>
 #include "devices.h"
-#include "board-monarudo.h"
+#include "board-deluxe_j.h"
 
-void monarudo_pm8xxx_adc_device_register(void);
+#ifdef CONFIG_SMB349_CHARGER
+#include "linux/i2c/smb349.h"
+#endif
+
+void deluxe_j_pm8xxx_adc_device_register(void);
 
 struct pm8xxx_gpio_init {
 	unsigned			gpio;
@@ -114,25 +118,24 @@ struct pm8xxx_mpp_init {
 			PM_GPIO_STRENGTH_HIGH, \
 			PM_GPIO_FUNC_NORMAL, 0, 0)
 
-/* Initial PM8921 GPIO configurations. Modify the structure need to inform kernel team*/
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
-	PM8921_GPIO_OUTPUT(14, 0, HIGH),	/* default uart path*/
-	PM8921_GPIO_OUTPUT(15, 0, HIGH),
+	PM8921_GPIO_OUTPUT_FUNC(26, 0, PM_GPIO_FUNC_2),
+	
+	PM8921_GPIO_OUTPUT(34, 1, MED),
 };
 
 static struct pm8xxx_gpio_init pm8921_cdp_kp_gpios[] __initdata = {
-	//PM8921_GPIO_INPUT(37, PM_GPIO_PULL_UP_1P5),
+	
 };
 
 static struct pm8xxx_gpio_init pm8921_amp_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(4, 1, MED),
 };
 
-/* Initial PM8XXX MPP configurations */
 static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
-	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
-	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
+	
+	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
 	PM8921_MPP_INIT(PM8XXX_AMUX_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5, AOUT_CTRL_DISABLE),
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	PM8921_MPP_INIT(PM8XXX_AMUX_MPP_1, D_BI_DIR, PM8921_MPP_DIG_LEVEL_S4, BI_PULLUP_10KOHM),
@@ -142,30 +145,7 @@ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 #endif
 };
 
-static struct pm8xxx_gpio_init pm8921_gpios_uart_path[]  = {
-	PM8921_GPIO_OUTPUT(14, 0, HIGH),	/* output low*/
-	PM8921_GPIO_OUTPUT(15, 0, HIGH),	/* output low*/
-};
-
-static struct pm8xxx_gpio_init pm8921_gpios_usb_path[]  = {
-	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* output high*/
-	PM8921_GPIO_OUTPUT(15, 0, HIGH),	/* output low*/
-};
-
-void monarudo_usb_uart_switch(int nvbus)
-{
-	printk(KERN_INFO "%s: %s, rev=%d\n", __func__, nvbus ? "uart" : "usb", system_rev);
-	if(nvbus == 1) { /* vbus gone */
-		pm8xxx_gpio_config(pm8921_gpios_uart_path[0].gpio, &pm8921_gpios_uart_path[0].config);
-		pm8xxx_gpio_config(pm8921_gpios_uart_path[1].gpio, &pm8921_gpios_uart_path[1].config);
-	} else {	/* vbus present, pin pull low */
-		pm8xxx_gpio_config(pm8921_gpios_usb_path[0].gpio, &pm8921_gpios_usb_path[0].config);
-		pm8xxx_gpio_config(pm8921_gpios_usb_path[1].gpio, &pm8921_gpios_usb_path[1].config);
-	}
-}
-
-
-void __init monarudo_pm8xxx_gpio_mpp_init(void)
+void __init deluxe_j_pm8xxx_gpio_mpp_init(void)
 {
 	int i, rc;
 
@@ -196,68 +176,25 @@ void __init monarudo_pm8xxx_gpio_mpp_init(void)
 			break;
 		}
 	}
-	if (system_rev >= XB)
-		pm8xxx_gpio_config(pm8921_amp_gpios[0].gpio, &pm8921_amp_gpios[0].config);
+
+	pm8xxx_gpio_config(pm8921_amp_gpios[0].gpio, &pm8921_amp_gpios[0].config);
 }
 
-static struct pm8xxx_pwrkey_platform_data monarudo_pm8921_pwrkey_pdata = {
+static struct pm8xxx_pwrkey_platform_data deluxe_j_pm8921_pwrkey_pdata = {
 	.pull_up		= 1,
 	.kpd_trigger_delay_us	= 15625,
 	.wakeup			= 1,
 };
 
-static struct pm8xxx_misc_platform_data monarudo_pm8921_misc_pdata = {
+static struct pm8xxx_misc_platform_data deluxe_j_pm8921_misc_pdata = {
 	.priority		= 0,
 };
 
-#define PM8921_LC_LED_MAX_CURRENT	4	/* I = 4mA */
-#define PM8921_LC_LED_LOW_CURRENT	1	/* I = 1mA */
+#define PM8921_LC_LED_MAX_CURRENT	4	
+#define PM8921_LC_LED_LOW_CURRENT	1	
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		20
-/**
- * PM8XXX_PWM_CHANNEL_NONE shall be used when LED shall not be
- * driven using PWM feature.
- */
 #define PM8XXX_PWM_CHANNEL_NONE		-1
-
-static struct pm8xxx_gpio_init green_gpios[] = {
-	PM8921_GPIO_INIT(GREEN_BACK_LED_XC_XD, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, \
-				PM_GPIO_PULL_NO, PM_GPIO_VIN_BB, \
-				PM_GPIO_STRENGTH_HIGH, \
-				PM_GPIO_FUNC_2, 0, 0),
-	PM8921_GPIO_INIT(GREEN_BACK_LED_XC_XD, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, \
-				PM_GPIO_PULL_NO, PM_GPIO_VIN_BB, \
-				PM_GPIO_STRENGTH_HIGH, \
-				PM_GPIO_FUNC_NORMAL, 0, 0),
-};
-
-static struct pm8xxx_gpio_init amber_gpios[] = {
-	PM8921_GPIO_INIT(AMBER_BACK_LED_XC_XD, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, \
-				PM_GPIO_PULL_NO, PM_GPIO_VIN_BB, \
-				PM_GPIO_STRENGTH_HIGH, \
-				PM_GPIO_FUNC_2, 0, 0),
-	PM8921_GPIO_INIT(AMBER_BACK_LED_XC_XD, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, \
-				PM_GPIO_PULL_NO, PM_GPIO_VIN_BB, \
-				PM_GPIO_STRENGTH_HIGH, \
-				PM_GPIO_FUNC_NORMAL, 0, 0),
-
-};
-
-static void green_gpio_config(bool enable)
-{
-		if (enable)
-			pm8xxx_gpio_config(green_gpios[0].gpio, &green_gpios[0].config);
-		else
-			pm8xxx_gpio_config(green_gpios[1].gpio, &green_gpios[1].config);
-}
-
-static void amber_gpio_config(bool enable)
-{
-		if (enable)
-			pm8xxx_gpio_config(amber_gpios[0].gpio, &amber_gpios[0].config);
-		else
-			pm8xxx_gpio_config(amber_gpios[1].gpio, &amber_gpios[1].config);
-}
 
 static struct pm8xxx_led_configure pm8921_led_info[] = {
 	[0] = {
@@ -279,42 +216,15 @@ static struct pm8xxx_led_configure pm8921_led_info[] = {
 				0, 0, 0, 0, 0, 0, 0, 0,
 				0, 0, 0, 0, 0, 0, 0, 0},
 	},
-	[1] = {
-		.name           = "green",
-		.flags		= PM8XXX_ID_GPIO24,
-		.function_flags = LED_PWM_FUNCTION | LED_BLINK_FUNCTION,
-		.gpio_status_switch = green_gpio_config,
-		.led_sync		= 1,
-	},
-	[2] = {
-		.name           = "amber",
-		.flags		= PM8XXX_ID_GPIO25,
-		.function_flags = LED_PWM_FUNCTION | LED_BLINK_FUNCTION,
-		.gpio_status_switch = amber_gpio_config,
-		.led_sync		= 1,
-	},
-	[3] = {
-		.name		= "green-back",
-		.flags		= PM8XXX_ID_LED_1,
-		.function_flags = LED_PWM_FUNCTION | LED_BLINK_FUNCTION,
-		.out_current	= 2,
-	},
-	[4] = {
-		.name		= "amber-back",
-		.flags		= PM8XXX_ID_LED_2,
-		.function_flags = LED_PWM_FUNCTION | LED_BLINK_FUNCTION,
-		.out_current	= 2,
-	},
 };
 
-static struct pm8xxx_led_platform_data apq8064_pm8921_leds_pdata = {
+static struct pm8xxx_led_platform_data deluxe_j_pm8921_leds_pdata = {
 	.num_leds = ARRAY_SIZE(pm8921_led_info),
 	.leds = pm8921_led_info,
 };
 
 
-
-static struct pm8xxx_adc_amux monarudo_pm8921_adc_channels_data[] = {
+static struct pm8xxx_adc_amux deluxe_j_pm8921_adc_channels_data[] = {
 	{"vcoin", CHANNEL_VCOIN, CHAN_PATH_SCALING2, AMUX_RSV1,
 		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
 	{"vbat", CHANNEL_VBAT, CHAN_PATH_SCALING2, AMUX_RSV1,
@@ -345,14 +255,16 @@ static struct pm8xxx_adc_amux monarudo_pm8921_adc_channels_data[] = {
 		ADC_DECIMATION_TYPE2, ADC_SCALE_XOTHERM},
 	{"mpp_amux6", ADC_MPP_1_AMUX6, CHAN_PATH_SCALING1, AMUX_RSV1,
 		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
+	{"amux_in", ADC_MPP_1_AMUX4, CHAN_PATH_SCALING1, AMUX_RSV1,
+		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
 };
 
-static struct pm8xxx_adc_properties monarudo_pm8921_adc_data = {
-	.adc_vdd_reference	= 1800, /* milli-voltage for this adc */
+static struct pm8xxx_adc_properties deluxe_j_pm8921_adc_data = {
+	.adc_vdd_reference	= 1800, 
 	.bitresolution		= 15,
 	.bipolar                = 0,
 };
-static const struct pm8xxx_adc_map_pt monarudo_adcmap_btm_table[] = {
+static const struct pm8xxx_adc_map_pt deluxe_j_adcmap_btm_table[] = {
 	{-200,	1671},
 	{-190,	1663},
 	{-180,	1654},
@@ -456,31 +368,31 @@ static const struct pm8xxx_adc_map_pt monarudo_adcmap_btm_table[] = {
 };
 
 static struct pm8xxx_adc_map_table pm8xxx_adcmap_btm_table = {
-	.table = monarudo_adcmap_btm_table,
-	.size = ARRAY_SIZE(monarudo_adcmap_btm_table),
+	.table = deluxe_j_adcmap_btm_table,
+	.size = ARRAY_SIZE(deluxe_j_adcmap_btm_table),
 };
 
-static struct pm8xxx_adc_platform_data monarudo_pm8921_adc_pdata = {
-	.adc_channel		= monarudo_pm8921_adc_channels_data,
-	.adc_num_board_channel	= ARRAY_SIZE(monarudo_pm8921_adc_channels_data),
-	.adc_prop		= &monarudo_pm8921_adc_data,
+static struct pm8xxx_adc_platform_data deluxe_j_pm8921_adc_pdata = {
+	.adc_channel		= deluxe_j_pm8921_adc_channels_data,
+	.adc_num_board_channel	= ARRAY_SIZE(deluxe_j_pm8921_adc_channels_data),
+	.adc_prop		= &deluxe_j_pm8921_adc_data,
 	.adc_mpp_base		= PM8921_MPP_PM_TO_SYS(1),
 	.adc_map_btm_table	= &pm8xxx_adcmap_btm_table,
-	.pm8xxx_adc_device_register	= monarudo_pm8xxx_adc_device_register,
+	.pm8xxx_adc_device_register	= deluxe_j_pm8xxx_adc_device_register,
 };
 
 static struct pm8xxx_mpp_platform_data
-monarudo_pm8921_mpp_pdata __devinitdata = {
+deluxe_j_pm8921_mpp_pdata __devinitdata = {
 	.mpp_base	= PM8921_MPP_PM_TO_SYS(1),
 };
 
 static struct pm8xxx_gpio_platform_data
-monarudo_pm8921_gpio_pdata __devinitdata = {
+deluxe_j_pm8921_gpio_pdata __devinitdata = {
 	.gpio_base	= PM8921_GPIO_PM_TO_SYS(1),
 };
 
 static struct pm8xxx_irq_platform_data
-monarudo_pm8921_irq_pdata __devinitdata = {
+deluxe_j_pm8921_irq_pdata __devinitdata = {
 	.irq_base		= PM8921_IRQ_BASE,
 	.devirq			= MSM_GPIO_TO_INT(PM8921_APC_USR_IRQ_N),
 	.irq_trigger_flag	= IRQF_TRIGGER_LOW,
@@ -488,22 +400,55 @@ monarudo_pm8921_irq_pdata __devinitdata = {
 };
 
 static struct pm8xxx_rtc_platform_data
-monarudo_pm8921_rtc_pdata = {
+deluxe_j_pm8921_rtc_pdata = {
 	.rtc_write_enable       = true,
 	.rtc_alarm_powerup      = false,
 };
 
-static int monarudo_pm8921_therm_mitigation[] = {
+static int deluxe_j_pm8921_therm_mitigation[] = {
 	1100,
 	700,
 	600,
 	225,
 };
 
+
+static struct htc_charger
+smb_icharger = {
+	.name = "smb349",
+#ifdef CONFIG_SMB349_CHARGER
+	.get_charging_source = smb349_get_charging_src,
+	.is_charging_enabled = smb349_is_charging_enabled,
+	.get_charging_enabled = smb349_get_charging_enabled,
+	.set_charger_enable = smb349_enable_charging,
+	.event_notify = smb349_event_notify,
+	.set_pwrsrc_enable = smb349_enable_pwrsrc,
+	.set_pwrsrc_and_charger_enable = smb349_set_pwrsrc_and_charger_enable,
+	.set_limit_charge_enable = smb349_limit_charge_enable,
+	.is_ovp = smb349_is_charger_overvoltage,
+	.is_batt_temp_fault_disable_chg = smb349_is_batt_temp_fault_disable_chg,
+	.charger_change_notifier_register = cable_detect_register_notifier,
+	.dump_all = smb349_dump_all,
+	.get_attr_text = smb349_charger_get_attr_text,
+#endif
+};
+
+static struct ext_usb_chg_pm8921
+smb_ext_chg = {
+       .name = "smb349",
+       .ctx = NULL,
+#ifdef CONFIG_SMB349_CHARGER
+       .start_charging = smb349_start_charging,
+       .stop_charging = smb349_stop_charging,
+       .is_trickle =  smb349_is_trickle_charging,
+#endif
+       .ichg = &smb_icharger,
+};
+
 #define MAX_VOLTAGE_MV          4200
 static struct pm8921_charger_platform_data
 pm8921_chg_pdata __devinitdata = {
-	.safety_time		= 960,
+	.safety_time		= 510,
 	.update_time		= 60000,
 	.max_voltage		= MAX_VOLTAGE_MV,
 	.min_voltage		= 3200,
@@ -512,24 +457,22 @@ pm8921_chg_pdata __devinitdata = {
 	.cool_temp		= 0,
 	.warm_temp		= 48,
 	.temp_check_period	= 1,
-	.dc_unplug_check	= true,
 	.max_bat_chg_current	= 1025,
 	.cool_bat_chg_current	= 1025,
 	.warm_bat_chg_current	= 1025,
 	.cool_bat_voltage	= 4200,
 	.warm_bat_voltage	= 4000,
-	.mbat_in_gpio		= 0, /* No MBAT_IN*/
-	.wlc_tx_gpio		= 0, /* Used to detect if WLC pad is existed */
+	.mbat_in_gpio		= 0, 
 	.is_embeded_batt	= 1,
-	.vin_min_wlc		= 4800, /* only for WLC in DLX_WL */
-	.thermal_mitigation	= monarudo_pm8921_therm_mitigation,
-	.thermal_levels		= ARRAY_SIZE(monarudo_pm8921_therm_mitigation),
+	.thermal_mitigation	= deluxe_j_pm8921_therm_mitigation,
+	.thermal_levels		= ARRAY_SIZE(deluxe_j_pm8921_therm_mitigation),
 	.cold_thr = PM_SMBC_BATT_TEMP_COLD_THR__HIGH,
 	.hot_thr = PM_SMBC_BATT_TEMP_HOT_THR__LOW,
+	.ext_usb = &smb_ext_chg,
 };
 
 static struct pm8xxx_ccadc_platform_data
-monarudo_pm8xxx_ccadc_pdata = {
+deluxe_j_pm8xxx_ccadc_pdata = {
 	.r_sense		= 10,
 	.calib_delay_ms		= 600000,
 };
@@ -561,26 +504,24 @@ static int __init check_dq_setup(char *str)
 __setup("androidboot.dq=", check_dq_setup);
 
 static struct pm8921_platform_data
-monarudo_pm8921_platform_data __devinitdata = {
-	.regulator_pdatas	= monarudo_pm8921_regulator_pdata,
-	.irq_pdata		= &monarudo_pm8921_irq_pdata,
-	.gpio_pdata		= &monarudo_pm8921_gpio_pdata,
-	.mpp_pdata		= &monarudo_pm8921_mpp_pdata,
-	.rtc_pdata		= &monarudo_pm8921_rtc_pdata,
-	.pwrkey_pdata	= &monarudo_pm8921_pwrkey_pdata,
-	.leds_pdata		= &apq8064_pm8921_leds_pdata,
-	.misc_pdata		= &monarudo_pm8921_misc_pdata,
-#if 0
-	.leds_pdata		= &monarudo_pm8921_leds_pdata,
-#endif
-	.adc_pdata		= &monarudo_pm8921_adc_pdata,
+deluxe_j_pm8921_platform_data __devinitdata = {
+	.regulator_pdatas	= deluxe_j_pm8921_regulator_pdata,
+	.irq_pdata		= &deluxe_j_pm8921_irq_pdata,
+	.gpio_pdata		= &deluxe_j_pm8921_gpio_pdata,
+	.mpp_pdata		= &deluxe_j_pm8921_mpp_pdata,
+	.rtc_pdata		= &deluxe_j_pm8921_rtc_pdata,
+	.pwrkey_pdata	= &deluxe_j_pm8921_pwrkey_pdata,
+	
+	.misc_pdata		= &deluxe_j_pm8921_misc_pdata,
+	.leds_pdata		= &deluxe_j_pm8921_leds_pdata,
+	.adc_pdata		= &deluxe_j_pm8921_adc_pdata,
 	.charger_pdata		= &pm8921_chg_pdata,
 	.bms_pdata		= &pm8921_bms_pdata,
-	.ccadc_pdata		= &monarudo_pm8xxx_ccadc_pdata,
+	.ccadc_pdata		= &deluxe_j_pm8xxx_ccadc_pdata,
 };
 
 static struct pm8xxx_irq_platform_data
-monarudo_pm8821_irq_pdata __devinitdata = {
+deluxe_j_pm8821_irq_pdata __devinitdata = {
 	.irq_base		= PM8821_IRQ_BASE,
 	.devirq			= PM8821_SEC_IRQ_N,
 	.irq_trigger_flag	= IRQF_TRIGGER_HIGH,
@@ -588,53 +529,41 @@ monarudo_pm8821_irq_pdata __devinitdata = {
 };
 
 static struct pm8xxx_mpp_platform_data
-monarudo_pm8821_mpp_pdata __devinitdata = {
+deluxe_j_pm8821_mpp_pdata __devinitdata = {
 	.mpp_base	= PM8821_MPP_PM_TO_SYS(1),
 };
 
 static struct pm8821_platform_data
-monarudo_pm8821_platform_data __devinitdata = {
-	.irq_pdata	= &monarudo_pm8821_irq_pdata,
-	.mpp_pdata	= &monarudo_pm8821_mpp_pdata,
+deluxe_j_pm8821_platform_data __devinitdata = {
+	.irq_pdata	= &deluxe_j_pm8821_irq_pdata,
+	.mpp_pdata	= &deluxe_j_pm8821_mpp_pdata,
 };
 
-static struct msm_ssbi_platform_data monarudo_ssbi_pm8921_pdata __devinitdata = {
+static struct msm_ssbi_platform_data deluxe_j_ssbi_pm8921_pdata __devinitdata = {
 	.controller_type = MSM_SBI_CTRL_PMIC_ARBITER,
 	.slave	= {
 		.name		= "pm8921-core",
-		.platform_data	= &monarudo_pm8921_platform_data,
+		.platform_data	= &deluxe_j_pm8921_platform_data,
 	},
 };
 
-static struct msm_ssbi_platform_data monarudo_ssbi_pm8821_pdata __devinitdata = {
+static struct msm_ssbi_platform_data deluxe_j_ssbi_pm8821_pdata __devinitdata = {
 	.controller_type = MSM_SBI_CTRL_PMIC_ARBITER,
 	.slave	= {
 		.name		= "pm8821-core",
-		.platform_data	= &monarudo_pm8821_platform_data,
+		.platform_data	= &deluxe_j_pm8821_platform_data,
 	},
 };
 
-void __init monarudo_init_pmic(void)
+void __init deluxe_j_init_pmic(void)
 {
 	pmic_reset_irq = PM8921_IRQ_BASE + PM8921_RESOUT_IRQ;
 
-	if (system_rev <= XC) {
-		/* Adjust r_sense to get correct value of current &
-		 * Magnify ibat_max & ibat_safe (bootloader) to
-		 * cover wrong higher current than real one */
-		pm8921_bms_pdata.r_sense = 10/0.754;
-		monarudo_pm8xxx_ccadc_pdata.r_sense = 10/0.754;
-		pm8921_chg_pdata.max_bat_chg_current = 1400;
-		pm8921_chg_pdata.cool_bat_chg_current = 1400;
-		pm8921_chg_pdata.warm_bat_chg_current = 1400;
-	}
-	if (system_rev >= PVT)
-		pm8921_chg_pdata.wlc_tx_gpio = PM8921_GPIO_PM_TO_SYS(WC_TX_WPGz_PVT);
 	apq8064_device_ssbi_pmic1.dev.platform_data =
-						&monarudo_ssbi_pm8921_pdata;
+						&deluxe_j_ssbi_pm8921_pdata;
 	apq8064_device_ssbi_pmic2.dev.platform_data =
-				&monarudo_ssbi_pm8821_pdata;
-	monarudo_pm8921_platform_data.num_regulators =
-					monarudo_pm8921_regulator_pdata_len;
+				&deluxe_j_ssbi_pm8821_pdata;
+	deluxe_j_pm8921_platform_data.num_regulators =
+					deluxe_j_pm8921_regulator_pdata_len;
 
 }

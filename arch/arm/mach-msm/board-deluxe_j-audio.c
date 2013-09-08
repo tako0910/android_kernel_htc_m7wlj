@@ -13,22 +13,23 @@
  * GNU General Public License for more details.
  */
 
+#include <asm/mach-types.h>
 #include <linux/platform_device.h>
+#include <mach/htc_acoustic_8960.h>
 #include <sound/pcm.h>
 #include <sound/q6asm.h>
-#include <mach/htc_acoustic_8960.h>
 #include <linux/module.h>
-#include "board-monarudo.h"
+#include "board-deluxe_j.h"
 #include "../sound/soc/msm/msm-pcm-routing.h"
 
 #include <linux/gpio.h>
 #include <mach/tpa6185.h>
 #include <mach/rt5501.h>
-static atomic_t q6_effect_mode = ATOMIC_INIT(-1);
 #define HAC_PAMP_GPIO	6
+static atomic_t q6_effect_mode = ATOMIC_INIT(-1);
 extern unsigned int system_rev;
 
-static int monarudo_get_hw_component(void)
+static int deluxej_get_hw_component(void)
 {
     int hw_com = 0;
 
@@ -41,12 +42,12 @@ static int monarudo_get_hw_component(void)
     return hw_com;
 }
 
-static int monarudo_enable_digital_mic(void)
+static int deluxej_enable_digital_mic(void)
 {
-    if(system_rev >= XD)
-        return 1;
-
-    return 0;
+	if(system_rev >= XC)
+		return 1;
+	else
+		return 0;
 }
 
 void apq8064_set_q6_effect_mode(int mode)
@@ -63,9 +64,9 @@ int apq8064_get_q6_effect_mode(void)
 }
 
 static struct acoustic_ops acoustic = {
-        .enable_digital_mic = monarudo_enable_digital_mic,
-        .get_hw_component = monarudo_get_hw_component,
-	.set_q6_effect = apq8064_set_q6_effect_mode,
+        .enable_digital_mic = deluxej_enable_digital_mic,
+        .get_hw_component = deluxej_get_hw_component,
+	.set_q6_effect = apq8064_set_q6_effect_mode
 };
 
 static struct q6asm_ops qops = {
@@ -76,7 +77,7 @@ static struct msm_pcm_routing_ops rops = {
 	.get_q6_effect = apq8064_get_q6_effect_mode,
 };
 
-static int __init monarudo_audio_init(void)
+static int __init deluxe_j_audio_init(void)
 {
         int ret = 0;
 
@@ -96,16 +97,17 @@ static int __init monarudo_audio_init(void)
 	htc_register_q6asm_ops(&qops);
 	htc_register_pcm_routing_ops(&rops);
 	acoustic_register_ops(&acoustic);
+
 	return ret;
 
 }
-late_initcall(monarudo_audio_init);
+late_initcall(deluxe_j_audio_init);
 
-static void __exit monarudo_audio_exit(void)
+static void __exit deluxe_j_audio_exit(void)
 {
 	pr_info("%s", __func__);
 }
-module_exit(monarudo_audio_exit);
+module_exit(deluxe_j_audio_exit);
 
 MODULE_DESCRIPTION("ALSA Platform Elite");
 MODULE_LICENSE("GPL v2");

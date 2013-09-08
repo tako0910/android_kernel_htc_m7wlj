@@ -26,7 +26,7 @@
 #include <mach/panel_id.h>
 #include <mach/debug_display.h>
 #include "devices.h"
-#include "board-monarudo.h"
+#include "board-deluxe_j.h"
 #include <linux/mfd/pm8xxx/pm8921.h>
 #include <mach/gpio.h>
 #include <mach/gpiomux.h>
@@ -39,10 +39,8 @@
 #define hr_msleep(x) msleep(x)
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-/* prim = 1366 x 768 x 3(bpp) x 3(pages) */
 #define MSM_FB_PRIM_BUF_SIZE (1920 * ALIGN(1080, 32) * 4 * 3)
 #else
-/* prim = 1366 x 768 x 3(bpp) x 2(pages) */
 #define MSM_FB_PRIM_BUF_SIZE (1920 * ALIGN(1080, 32) * 4 * 2)
 #endif
 
@@ -52,13 +50,13 @@
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1920 * 1080 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
+#endif  
 
 #ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
+#endif  
 
 static struct resource msm_fb_resources[] = {
 	{
@@ -76,7 +74,7 @@ const size_t ptype_len = ( 60 - sizeof("PANEL type = "));
 #define HDMI_PANEL_NAME "hdmi_msm"
 #define TVOUT_PANEL_NAME "tvout_msm"
 
-static int monarudo_detect_panel(const char *name)
+static int deluxe_j_detect_panel(const char *name)
 {
 	if (!strncmp(name, HDMI_PANEL_NAME,
 		strnlen(HDMI_PANEL_NAME,
@@ -87,7 +85,7 @@ static int monarudo_detect_panel(const char *name)
 }
 
 static struct msm_fb_platform_data msm_fb_pdata = {
-	.detect_client = monarudo_detect_panel,
+	.detect_client = deluxe_j_detect_panel,
 };
 
 static struct platform_device msm_fb_device = {
@@ -98,7 +96,7 @@ static struct platform_device msm_fb_device = {
 	.dev.platform_data = &msm_fb_pdata,
 };
 
-void __init monarudo_allocate_fb_region(void)
+void __init deluxe_j_allocate_fb_region(void)
 {
 	void *addr;
 	unsigned long size;
@@ -133,7 +131,7 @@ static struct msm_bus_vectors mdp_ui_vectors[] = {
 };
 
 static struct msm_bus_vectors mdp_vga_vectors[] = {
-	/* VGA and less video */
+	
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
@@ -143,7 +141,7 @@ static struct msm_bus_vectors mdp_vga_vectors[] = {
 };
 
 static struct msm_bus_vectors mdp_720p_vectors[] = {
-	/* 720p and less video */
+	
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
@@ -153,7 +151,7 @@ static struct msm_bus_vectors mdp_720p_vectors[] = {
 };
 
 static struct msm_bus_vectors mdp_1080p_vectors[] = {
-	/* 1080p and less video */
+	
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
@@ -235,6 +233,9 @@ static struct lcdc_platform_data dtv_pdata = {
 };
 #endif
 
+// struct mdp_reg *mdp_gamma = NULL;
+int mdp_gamma_count = 0;
+
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
@@ -277,7 +278,7 @@ static struct platform_device wfd_device = {
 };
 #endif
 
-void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
+void __init deluxe_j_mdp_writeback(struct memtype_reserve* reserve_table)
 {
 	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
 	mdp_pdata.ov1_wb_size = MSM_FB_OVERLAY1_WRITEBACK_SIZE;
@@ -291,7 +292,6 @@ void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
 			mdp_pdata.ov0_wb_size + mdp_pdata.ov1_wb_size);
 #endif
 }
-
 static bool dsi_power_on;
 static bool dsi_power_is_initialized = false;
 
@@ -308,7 +308,7 @@ backlight_gpio_enable(bool on)
 
 	if (on == backlight_gpio_is_on)
 		return;
-
+/*
 	if (system_rev == XB) {
 		gpio_tlmm_config(GPIO_CFG(MBAT_IN_XA_XB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 		gpio_set_value(MBAT_IN_XA_XB, on ? 1 : 0);
@@ -318,7 +318,7 @@ backlight_gpio_enable(bool on)
 		gpio_set_value(BL_HW_EN_XC_XD, on ? 1 : 0);
 		msleep(1);
 	}
-
+*/
 	backlight_gpio_is_on = on;
 }
 
@@ -340,7 +340,7 @@ static int mipi_dsi_panel_power(int on)
 	static int gpio36, gpio37;
 	int rc;
 
-	pr_debug("%s: on=%d\n", __func__, on);
+	PR_DISP_INFO("%s: on=%d\n", __func__, on);
 
 	if (!dsi_power_on) {
 		PR_DISP_DEBUG("monarudo's %s: powering on.\n", __func__);
@@ -366,13 +366,13 @@ static int mipi_dsi_panel_power(int on)
 			return -EINVAL;
 		}
 
-		gpio36 = PM8921_GPIO_PM_TO_SYS(V_LCM_N5V_EN); /* lcd1_pwr_en_n */
+		gpio36 = PM8921_GPIO_PM_TO_SYS(V_LCM_N5V_EN); 
 		rc = gpio_request(gpio36, "lcd_5v-");
 		if (rc) {
 			pr_err("request lcd_5v- failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-		gpio37 = PM8921_GPIO_PM_TO_SYS(V_LCM_P5V_EN); /* pwm_en */
+		gpio37 = PM8921_GPIO_PM_TO_SYS(V_LCM_P5V_EN); 
 		rc = gpio_request(gpio37, "lcd_5v+");
 		if (rc) {
 			pr_err("request lcd_5v+ failed, rc=%d\n", rc);
@@ -433,7 +433,7 @@ static int mipi_dsi_panel_power(int on)
 				pr_err("enable l2 failed, rc=%d\n", rc);
 				return -ENODEV;
 			}
-			/* Workaround for 1mA */
+			
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_ON);
 			msleep(10);
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
@@ -469,7 +469,7 @@ static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.dsi_power_save = mipi_dsi_panel_power,
 };
 
-static struct mipi_dsi_panel_platform_data *mipi_monarudo_pdata;
+static struct mipi_dsi_panel_platform_data *mipi_deluxe_j_pdata;
 
 static struct dsi_cmd_desc *video_on_cmds = NULL;
 static struct dsi_cmd_desc *display_off_cmds = NULL;
@@ -493,12 +493,10 @@ static char display_off[2] = {0x28, 0x00}; /* DTYPE_DCS_WRITE */
 static char display_on[2] = {0x29, 0x00}; /* DTYPE_DCS_WRITE */
 
 static char write_display_brightness[3]= {0x51, 0x0F, 0xFF};
-static char write_control_display[2] = {0x53, 0x24}; /* DTYPE_DCS_WRITE1 */
-
+static char write_control_display[2] = {0x53, 0x24}; 
 static struct dsi_cmd_desc renesas_cmd_backlight_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(write_display_brightness), write_display_brightness},
 };
-
 static struct dsi_cmd_desc renesas_display_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 };
@@ -553,13 +551,12 @@ static struct dsi_cmd_desc sharp_renesas_color_enhance_on_cmds[] = {
 static struct dsi_cmd_desc sharp_renesas_color_enhance_off_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(renesas_color_en_off), renesas_color_en_off},
 };
-
 static struct i2c_client *blk_pwm_client;
 static struct dcs_cmd_req cmdreq;
 
-static void monarudo_display_on(struct msm_fb_data_type *mfd);
+static void deluxe_j_display_on(struct msm_fb_data_type *mfd);
 
-static int monarudo_lcd_on(struct platform_device *pdev)
+static int deluxe_j_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 
@@ -572,7 +569,7 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	if(! display_is_on) {
 		struct mipi_panel_info *mipi = &mfd->panel_info.mipi;
 
-		monarudo_display_on(mfd);
+		deluxe_j_display_on(mfd);
 
 		PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
 
@@ -594,7 +591,7 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	return 0;
 }
 
-static int monarudo_lcd_off(struct platform_device *pdev)
+static int deluxe_j_lcd_off(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 
@@ -604,6 +601,15 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
+/*
+        cmdreq.cmds = sharp_display_off_cmds;
+        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
+        cmdreq.flags = CMD_REQ_COMMIT;
+        cmdreq.rlen = 0;
+        cmdreq.cb = NULL;
+
+        mipi_dsi_cmdlist_put(&cmdreq);
+*/
 
 	if (display_is_on) {
 		PR_DISP_DEBUG("%s: turning the display off.\n", __func__);
@@ -625,12 +631,10 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 
 	return 0;
 }
-
-
-static int __devinit monarudo_lcd_probe(struct platform_device *pdev)
+static int __devinit deluxe_j_lcd_probe(struct platform_device *pdev)
 {
 	if (pdev->id == 0) {
-		mipi_monarudo_pdata = pdev->dev.platform_data;
+		mipi_deluxe_j_pdata = pdev->dev.platform_data;
 		return 0;
 	}
 
@@ -640,7 +644,7 @@ static int __devinit monarudo_lcd_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void monarudo_display_on(struct msm_fb_data_type *mfd)
+static void deluxe_j_display_on(struct msm_fb_data_type *mfd)
 {
 	/* It needs 120ms when LP to HS for renesas */
 	msleep(120);
@@ -666,7 +670,7 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd)
 #define BRI_SETTING_DEF		 142
 #define BRI_SETTING_MAX		 255
 
-static unsigned char monarudo_shrink_pwm(int val)
+static unsigned char deluxe_j_shrink_pwm(int val)
 {
 	unsigned char shrink_br = BRI_SETTING_MAX;
 
@@ -688,11 +692,11 @@ static unsigned char monarudo_shrink_pwm(int val)
 	return shrink_br;
 }
 
-static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
+static void deluxe_j_set_backlight(struct msm_fb_data_type *mfd)
 {
 	int rc;
 
-	write_display_brightness[2] = monarudo_shrink_pwm((unsigned char)(mfd->bl_level));
+	write_display_brightness[2] = deluxe_j_shrink_pwm((unsigned char)(mfd->bl_level));
 
 	if (! display_is_on) {
 		PR_DISP_ERR("%s: changing backlight while the display is off!\n", __func__);
@@ -741,22 +745,22 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 }
 
 static struct platform_driver this_driver = {
-	.probe  = monarudo_lcd_probe,
+	.probe  = deluxe_j_lcd_probe,
 	.driver = {
-		.name   = "mipi_monarudo",
+		.name   = "mipi_deluxe_j",
 	},
 };
 
-static struct msm_fb_panel_data monarudo_panel_data = {
-	.on	= monarudo_lcd_on,
-	.off	= monarudo_lcd_off,
-	.set_backlight = monarudo_set_backlight,
+static struct msm_fb_panel_data deluxe_j_panel_data = {
+	.on	= deluxe_j_lcd_on,
+	.off	= deluxe_j_lcd_off,
+	.set_backlight = deluxe_j_set_backlight,
 };
 
 static struct msm_panel_info pinfo;
 static int ch_used[3] = {0};
 
-int mipi_monarudo_device_register(struct msm_panel_info *pinfo,
+int mipi_deluxe_j_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel)
 {
 	struct platform_device *pdev = NULL;
@@ -767,14 +771,14 @@ int mipi_monarudo_device_register(struct msm_panel_info *pinfo,
 
 	ch_used[channel] = TRUE;
 
-	pdev = platform_device_alloc("mipi_monarudo", (panel << 8)|channel);
+	pdev = platform_device_alloc("mipi_deluxe_j", (panel << 8)|channel);
 	if (!pdev)
 		return -ENOMEM;
 
-	monarudo_panel_data.panel_info = *pinfo;
+	deluxe_j_panel_data.panel_info = *pinfo;
 
-	ret = platform_device_add_data(pdev, &monarudo_panel_data,
-		sizeof(monarudo_panel_data));
+	ret = platform_device_add_data(pdev, &deluxe_j_panel_data,
+		sizeof(deluxe_j_panel_data));
 	if (ret) {
 		pr_err("%s: platform_device_add_data failed!\n", __func__);
 		goto err_device_put;
@@ -809,7 +813,6 @@ static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
 	0x41, 0x0F, 0x01,
 	0x00, 0x1A, 0x00, 0x00, 0x02, 0x00, 0x20, 0x00, 0x02 },
 };
-
 static int __init mipi_video_sharp_init(void)
 {
 	int ret;
@@ -874,12 +877,12 @@ static int __init mipi_video_sharp_init(void)
 	pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db;
 	pinfo.mipi.esc_byte_ratio = 2;
 
-	ret = mipi_monarudo_device_register(&pinfo, MIPI_DSI_PRIM,
+	ret = mipi_deluxe_j_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_FWVGA_PT);
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
 
-	strncat(ptype, "PANEL_ID_DLX_SHARP_RENESAS", ptype_len);
+	strncat(ptype, "PANEL_ID_DLXJ_SHARP_RENESAS", ptype_len);
 	video_on_cmds = sharp_video_on_cmds;
 	video_on_cmds_count = ARRAY_SIZE(sharp_video_on_cmds);
 
@@ -939,14 +942,14 @@ static void __exit pwm_i2c_remove(void)
 	i2c_del_driver(&pwm_i2c_driver);
 }
 
-void __init monarudo_init_fb(void)
+void __init deluxe_j_init_fb(void)
 {
 
 	platform_device_register(&msm_fb_device);
 
 	if(panel_type != PANEL_ID_NONE) {
 		if ((board_mfg_mode() == 4) || (board_mfg_mode() == 5))
-			mdp_pdata.cont_splash_enabled = 0x0;
+			 mdp_pdata.cont_splash_enabled = 0x0;
 		msm_fb_register_device("mdp", &mdp_pdata);
 		msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 		wa_xo = msm_xo_get(MSM_XO_TCXO_D0, "mipi");
@@ -958,7 +961,7 @@ void __init monarudo_init_fb(void)
 #endif
 }
 
-static int __init monarudo_panel_init(void)
+static int __init deluxe_j_panel_init(void)
 {
 	int ret;
 
@@ -972,7 +975,7 @@ static int __init monarudo_panel_init(void)
 	if (ret)
 		pr_err(KERN_ERR "%s: failed to add i2c driver\n", __func__);
 
-	if (panel_type == PANEL_ID_DLX_SHARP_RENESAS) {
+	if (panel_type == PANEL_ID_DLXJ_SHARP_RENESAS) {
 		mipi_video_sharp_init();
 		printk(KERN_INFO "match PANEL_ID_DLX_SHARP_RENESAS panel_type\n");
 	} else {
@@ -984,5 +987,5 @@ static int __init monarudo_panel_init(void)
 
 	return platform_driver_register(&this_driver);
 }
-late_initcall(monarudo_panel_init);
+late_initcall(deluxe_j_panel_init);
 

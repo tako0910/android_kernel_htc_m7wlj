@@ -20,7 +20,7 @@
 #include <mach/socinfo.h>
 
 #include "devices.h"
-#include "board-monarudo.h"
+#include "board-deluxe_j.h"
 
 #ifdef CONFIG_MSM_DCVS
 static struct msm_dcvs_freq_entry grp3d_freq[] = {
@@ -70,7 +70,7 @@ static struct msm_dcvs_core_info grp3d_core_info = {
 		.num_freq	= ARRAY_SIZE(grp3d_freq),
 	}
 };
-#endif /* CONFIG_MSM_DCVS */
+#endif 
 
 #ifdef CONFIG_MSM_BUS_SCALING
 static struct msm_bus_vectors grp3d_init_vectors[] = {
@@ -181,7 +181,7 @@ static struct msm_bus_scale_pdata grp3d_bus_scale_pdata = {
 static struct resource kgsl_3d0_resources[] = {
 	{
 		.name = KGSL_3D0_REG_MEMORY,
-		.start = 0x04300000, /* GFX3D address */
+		.start = 0x04300000, 
 		.end = 0x0431ffff,
 		.flags = IORESOURCE_MEM,
 	},
@@ -197,6 +197,7 @@ static const struct kgsl_iommu_ctx kgsl_3d0_iommu0_ctxs[] = {
 	{ "gfx3d_user", 0 },
 	{ "gfx3d_priv", 1 },
 };
+
 
 static const struct kgsl_iommu_ctx kgsl_3d0_iommu1_ctxs[] = {
 	{ "gfx3d1_user", 0 },

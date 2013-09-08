@@ -89,6 +89,7 @@ struct htc_charger {
 	int (*dump_all)(void);
 	int (*is_charging_enabled)(int *result);
 	int (*is_under_rating)(int *result);
+	int (*is_vbus_unstable)(int *result);
 	int (*get_attr_text)(char *buf, int size);
 	int (*enable_5v_output)(bool enable);
 	int (*is_safty_timer_timeout)(int *result);

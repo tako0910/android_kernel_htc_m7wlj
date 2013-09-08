@@ -1,5 +1,3 @@
-/* linux/arch/arm/mach-msm/board-monarudo-wifi.c
-*/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
@@ -12,13 +10,13 @@
 #include <linux/wifi_tiwlan.h>
 #include <mach/msm_bus_board.h>
 
-#include "board-monarudo.h"
-#include "board-monarudo-wifi.h"
+#include "board-deluxe_j.h"
+#include "board-deluxe_j-wifi.h"
 
-int monarudo_wifi_power(int on);
-int monarudo_wifi_reset(int on);
-int monarudo_wifi_set_carddetect(int on);
-int monarudo_wifi_get_mac_addr(unsigned char *buf);
+int deluxe_j_wifi_power(int on);
+int deluxe_j_wifi_reset(int on);
+int deluxe_j_wifi_set_carddetect(int on);
+int deluxe_j_wifi_get_mac_addr(unsigned char *buf);
 
 #define PREALLOC_WLAN_NUMBER_OF_SECTIONS	4
 #define PREALLOC_WLAN_NUMBER_OF_BUFFERS		160
@@ -47,7 +45,7 @@ static wifi_mem_prealloc_t wifi_mem_array[PREALLOC_WLAN_NUMBER_OF_SECTIONS] = {
 	{ NULL, (WLAN_SECTION_SIZE_3 + PREALLOC_WLAN_SECTION_HEADER) }
 };
 
-static void *monarudo_wifi_mem_prealloc(int section, unsigned long size)
+static void *deluxe_j_wifi_mem_prealloc(int section, unsigned long size)
 {
 	if (section == PREALLOC_WLAN_NUMBER_OF_SECTIONS)
 		return wlan_static_skb;
@@ -58,7 +56,7 @@ static void *monarudo_wifi_mem_prealloc(int section, unsigned long size)
 	return wifi_mem_array[section].mem_ptr;
 }
 
-int __init monarudo_init_wifi_mem(void)
+int __init deluxe_j_init_wifi_mem(void)
 {
 	int i;
 
@@ -77,11 +75,11 @@ int __init monarudo_init_wifi_mem(void)
 	return 0;
 }
 
-static struct resource monarudo_wifi_resources[] = {
+static struct resource deluxe_j_wifi_resources[] = {
 	[0] = {
 		.name		= "bcmdhd_wlan_irq",
-		.start		= PM8921_GPIO_IRQ(PM8921_IRQ_BASE, WL_HOST_WAKE_XC),
-		.end		= PM8921_GPIO_IRQ(PM8921_IRQ_BASE, WL_HOST_WAKE_XC),
+		.start		= PM8921_GPIO_IRQ(PM8921_IRQ_BASE, WL_HOST_WAKE),
+		.end		= PM8921_GPIO_IRQ(PM8921_IRQ_BASE, WL_HOST_WAKE),
 #ifdef HW_OOB
 		.flags          = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
 #else
@@ -90,7 +88,6 @@ static struct resource monarudo_wifi_resources[] = {
 	},
 };
 
-/* Bandwidth requests (zero) if no vote placed */
 static struct msm_bus_vectors wlan_init_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
@@ -100,13 +97,12 @@ static struct msm_bus_vectors wlan_init_vectors[] = {
        },
 };
 
-/* Bus bandwidth requests in Bytes/sec */
 static struct msm_bus_vectors wlan_max_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 60000000,         /* At least 480Mbps on bus. */
-               .ib = 960000000,        /* MAX bursts rate */
+               .ab = 60000000,         
+               .ib = 960000000,        
        },
 };
 
@@ -127,26 +123,26 @@ static struct msm_bus_scale_pdata wlan_bus_scale_pdata = {
        .name = "wlan",
 };
 
-static struct wifi_platform_data monarudo_wifi_control = {
-	.set_power      = monarudo_wifi_power,
-	.set_reset      = monarudo_wifi_reset,
-	.set_carddetect = monarudo_wifi_set_carddetect,
-	.mem_prealloc   = monarudo_wifi_mem_prealloc,
-	.get_mac_addr	= monarudo_wifi_get_mac_addr,
+static struct wifi_platform_data deluxe_j_wifi_control = {
+	.set_power      = deluxe_j_wifi_power,
+	.set_reset      = deluxe_j_wifi_reset,
+	.set_carddetect = deluxe_j_wifi_set_carddetect,
+	.mem_prealloc   = deluxe_j_wifi_mem_prealloc,
+	.get_mac_addr	= deluxe_j_wifi_get_mac_addr,
 	.bus_scale_table        = &wlan_bus_scale_pdata,
 };
 
-static struct platform_device monarudo_wifi_device = {
+static struct platform_device deluxe_j_wifi_device = {
 	.name           = "bcmdhd_wlan",
 	.id             = 1,
-	.num_resources  = ARRAY_SIZE(monarudo_wifi_resources),
-	.resource       = monarudo_wifi_resources,
+	.num_resources  = ARRAY_SIZE(deluxe_j_wifi_resources),
+	.resource       = deluxe_j_wifi_resources,
 	.dev            = {
-		.platform_data = &monarudo_wifi_control,
+		.platform_data = &deluxe_j_wifi_control,
 	},
 };
 
-static unsigned monarudo_wifi_update_nvs(char *str)
+static unsigned deluxe_j_wifi_update_nvs(char *str)
 {
 #define NVS_LEN_OFFSET		0x0C
 #define NVS_DATA_OFFSET		0x40
@@ -156,10 +152,10 @@ static unsigned monarudo_wifi_update_nvs(char *str)
 	if (!str)
 		return -EINVAL;
 	ptr = get_wifi_nvs_ram();
-	/* Size in format LE assumed */
+	
 	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
 
-	/* the last bye in NVRAM is 0, trim it */
+	
 	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
 		len -= 1;
 
@@ -188,10 +184,10 @@ static unsigned strip_nvs_param(char *param)
 	if (!param)
 		return -EINVAL;
 	ptr = get_wifi_nvs_ram();
-	/* Size in format LE assumed */
+	
 	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
 
-	/* the last bye in NVRAM is 0, trim it */
+	
 	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
 		len -= 1;
 
@@ -199,7 +195,7 @@ static unsigned strip_nvs_param(char *param)
 
 	param_len = strlen(param);
 
-	/* search param */
+	
 	for (start_idx = 0; start_idx < len - param_len; start_idx++) {
 		if (memcmp(&nvs_data[start_idx], param, param_len) == 0)
 			break;
@@ -207,7 +203,7 @@ static unsigned strip_nvs_param(char *param)
 
 	end_idx = 0;
 	if (start_idx < len - param_len) {
-		/* search end-of-line */
+		
 		for (end_idx = start_idx + param_len; end_idx < len; end_idx++) {
 			if (nvs_data[end_idx] == '\n' || nvs_data[end_idx] == 0)
 				break;
@@ -215,7 +211,7 @@ static unsigned strip_nvs_param(char *param)
 	}
 
 	if (start_idx < end_idx) {
-		/* move the remain data forward */
+		
 		for (; end_idx + 1 < len; start_idx++, end_idx++)
 			nvs_data[start_idx] = nvs_data[end_idx+1];
 
@@ -227,7 +223,7 @@ static unsigned strip_nvs_param(char *param)
 #endif
 
 #define WIFI_MAC_PARAM_STR     "macaddr="
-#define WIFI_MAX_MAC_LEN       17 /* XX:XX:XX:XX:XX:XX */
+#define WIFI_MAX_MAC_LEN       17 
 
 static uint
 get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
@@ -247,11 +243,11 @@ get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
 	if (mac_ptr) {
 		mac_ptr += strlen(WIFI_MAC_PARAM_STR);
 
-		/* skip leading space */
+		
 		while (mac_ptr[0] == ' ')
 			mac_ptr++;
 
-		/* locate end-of-line */
+		
 		len = 0;
 		while (mac_ptr[len] != '\r' && mac_ptr[len] != '\n' &&
 			mac_ptr[len] != '\0') {
@@ -268,7 +264,7 @@ get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
 }
 
 #define ETHER_ADDR_LEN 6
-int monarudo_wifi_get_mac_addr(unsigned char *buf)
+int deluxe_j_wifi_get_mac_addr(unsigned char *buf)
 {
 	static u8 ether_mac_addr[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0xFF};
 	char mac[WIFI_MAX_MAC_LEN];
@@ -278,7 +274,7 @@ int monarudo_wifi_get_mac_addr(unsigned char *buf)
 
 	mac_len = get_mac_from_wifi_nvs_ram(mac, WIFI_MAX_MAC_LEN);
 	if (mac_len > 0) {
-		/* Mac address to pattern */
+		
 		sscanf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
 		&macpattern[0], &macpattern[1], &macpattern[2],
 		&macpattern[3], &macpattern[4], &macpattern[5]
@@ -290,13 +286,13 @@ int monarudo_wifi_get_mac_addr(unsigned char *buf)
 
 	memcpy(buf, ether_mac_addr, sizeof(ether_mac_addr));
 
-	printk(KERN_INFO"monarudo_wifi_get_mac_addr = %02x %02x %02x %02x %02x %02x \n",
+	printk(KERN_INFO"deluxe_j_wifi_get_mac_addr = %02x %02x %02x %02x %02x %02x \n",
 		ether_mac_addr[0], ether_mac_addr[1], ether_mac_addr[2], ether_mac_addr[3], ether_mac_addr[4], ether_mac_addr[5]);
 
 	return 0;
 }
 
-int __init monarudo_wifi_init(void)
+int __init deluxe_j_wifi_init(void)
 {
 	int ret;
 
@@ -304,12 +300,12 @@ int __init monarudo_wifi_init(void)
 #ifdef HW_OOB
 	strip_nvs_param("sd_oobonly");
 #else
-	monarudo_wifi_update_nvs("sd_oobonly=1\n");
+	deluxe_j_wifi_update_nvs("sd_oobonly=1\n");
 #endif
-	monarudo_wifi_update_nvs("btc_params80=0\n");
-	monarudo_wifi_update_nvs("btc_params6=30\n");
-	monarudo_init_wifi_mem();
-	ret = platform_device_register(&monarudo_wifi_device);
+	deluxe_j_wifi_update_nvs("btc_params80=0\n");
+	deluxe_j_wifi_update_nvs("btc_params6=30\n");
+	deluxe_j_init_wifi_mem();
+	ret = platform_device_register(&deluxe_j_wifi_device);
 	return ret;
 }
 
