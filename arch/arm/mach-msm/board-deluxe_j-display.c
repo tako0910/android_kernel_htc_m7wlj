@@ -293,13 +293,10 @@ void __init deluxe_j_mdp_writeback(struct memtype_reserve* reserve_table)
 			mdp_pdata.ov0_wb_size + mdp_pdata.ov1_wb_size);
 #endif
 }
-static bool dsi_power_on;
-static bool dsi_power_is_initialized = false;
 
-static bool resume_blk = 0;
-DEFINE_MUTEX(display_setup_sem);
-static bool display_is_on = true;
-
+static bool dsi_power_on = false;
+static bool resume_blk = false;
+static bool first_init = true;
 static bool backlight_gpio_is_on = true;
 
 static void 
@@ -385,7 +382,7 @@ static int mipi_dsi_panel_power(int on)
 	}
 
 	if (on) {
-		if (dsi_power_is_initialized) {
+		if (!first_init) {
 			PR_DISP_DEBUG("monarudo's %s: turning on, previously initialized\n", __func__);
 			rc = regulator_set_optimum_mode(reg_l2, 100000);
 			if (rc < 0) {
@@ -415,8 +412,6 @@ static int mipi_dsi_panel_power(int on)
 
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
 		} else {
-			dsi_power_is_initialized = true;
-
 			PR_DISP_DEBUG("monarudo's %s: turning on, initializing\n", __func__);
 			/*Regulator needs enable first time*/
 			rc = regulator_enable(reg_lvs5);
@@ -555,8 +550,6 @@ static struct dsi_cmd_desc sharp_renesas_color_enhance_off_cmds[] = {
 static struct i2c_client *blk_pwm_client;
 static struct dcs_cmd_req cmdreq;
 
-static void deluxe_j_display_on(struct msm_fb_data_type *mfd);
-
 static int deluxe_j_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
@@ -567,10 +560,8 @@ static int deluxe_j_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	if(!display_is_on) {
+	if(! first_init) {
 		struct mipi_panel_info *mipi = &mfd->panel_info.mipi;
-
-		deluxe_j_display_on(mfd);
 
 		PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
 
@@ -585,9 +576,8 @@ static int deluxe_j_lcd_on(struct platform_device *pdev)
 
 			PR_DISP_INFO("%s\n", __func__);
 		}
-		display_is_on = true;
-	} else
-		PR_DISP_INFO("%s: display was already turned on.\n", __func__);
+	}
+	first_init = false;
 
 	return 0;
 }
@@ -612,21 +602,7 @@ static int deluxe_j_lcd_off(struct platform_device *pdev)
         mipi_dsi_cmdlist_put(&cmdreq);
 */
 
-	if (display_is_on) {
-		PR_DISP_DEBUG("%s: turning the display off.\n", __func__);
-
-		cmdreq.cmds = sharp_display_off_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
-		cmdreq.flags = CMD_REQ_COMMIT;
-		cmdreq.rlen = 0;
-		cmdreq.cb = NULL;
-
-		mipi_dsi_cmdlist_put(&cmdreq);
-
-		display_is_on = false;
-		resume_blk = true;
-	} else
-		PR_DISP_INFO("%s: display was already turned off.\n", __func__);
+	resume_blk = true;
 
 	PR_DISP_INFO("%s\n", __func__);
 
@@ -645,8 +621,12 @@ static int __devinit deluxe_j_lcd_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void deluxe_j_display_on(struct msm_fb_data_type *mfd)
+static int deluxe_j_display_on(struct platform_device *pdev)
 {
+	struct msm_fb_data_type *mfd;
+
+	mfd = platform_get_drvdata(pdev);
+
 	/* It needs 120ms when LP to HS for renesas */
 	msleep(120);
 
@@ -661,6 +641,25 @@ static void deluxe_j_display_on(struct msm_fb_data_type *mfd)
 	mipi_dsi_cmdlist_put(&cmdreq);
 
 	PR_DISP_INFO("%s\n", __func__);
+	return 0;
+}
+
+static int deluxe_j_display_off(struct platform_device *pdev)
+{
+	struct msm_fb_data_type *mfd;
+
+	mfd = platform_get_drvdata(pdev);
+
+	cmdreq.cmds = sharp_display_off_cmds;
+	cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
+	cmdreq.flags = CMD_REQ_COMMIT;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	mipi_dsi_cmdlist_put(&cmdreq);
+
+	PR_DISP_INFO("%s\n", __func__);
+	return 0;
 }
 
 #define PWM_MIN		   13
@@ -698,11 +697,6 @@ static void deluxe_j_set_backlight(struct msm_fb_data_type *mfd)
 	int rc;
 
 	write_display_brightness[2] = deluxe_j_shrink_pwm((unsigned char)(mfd->bl_level));
-
-	if (!display_is_on) {
-		PR_DISP_ERR("%s: changing backlight while the display is off!\n", __func__);
-		return;
-	}
 
 	if (resume_blk) {
 		resume_blk = false;
@@ -756,6 +750,8 @@ static struct msm_fb_panel_data deluxe_j_panel_data = {
 	.on	= deluxe_j_lcd_on,
 	.off	= deluxe_j_lcd_off,
 	.set_backlight = deluxe_j_set_backlight,
+	.late_init = deluxe_j_display_on,
+	.early_off = deluxe_j_display_off,
 };
 
 static struct msm_panel_info pinfo;
@@ -824,6 +820,9 @@ static int __init mipi_video_sharp_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
+	pinfo.width = 58;
+	pinfo.height = 103;
+	pinfo.camera_backlight = 183;
 
 	pinfo.lcdc.h_back_porch = 50;
 	pinfo.lcdc.h_front_porch = 100;
