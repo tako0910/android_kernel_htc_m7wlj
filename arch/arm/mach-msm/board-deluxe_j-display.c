@@ -251,7 +251,8 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
-	.cont_splash_enabled = 0x00,
+	.cont_splash_enabled = 0x01,
+	.splash_screen_size = 0x3f4800,
 	.mdp_iommu_split_domain = 1,
 };
 
@@ -516,8 +517,8 @@ static char Color_enhancement[33]= {
 static char Outline_Sharpening_Control[3] = {
 	0xDD, 0x11, 0xA1};
 static char BackLight_Control_6[8]= {
-	0xCE, 0x00, 0x07, 0x00,
-	0xC1, 0x24, 0xB2, 0x02};
+	0xCE, 0x00, 0x01, 0x00,
+	0xC1, 0xF4, 0xB2, 0x02};
 static char Manufacture_Command_setting[4] = {0xD6, 0x01};
 static char nop[4] = {0x00, 0x00};
 static char CABC[2] = {0x55, 0x01};
@@ -566,7 +567,7 @@ static int deluxe_j_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	if(! display_is_on) {
+	if(!display_is_on) {
 		struct mipi_panel_info *mipi = &mfd->panel_info.mipi;
 
 		deluxe_j_display_on(mfd);
@@ -662,7 +663,7 @@ static void deluxe_j_display_on(struct msm_fb_data_type *mfd)
 	PR_DISP_INFO("%s\n", __func__);
 }
 
-#define PWM_MIN		   21
+#define PWM_MIN		   13
 #define PWM_DEFAULT	       82
 #define PWM_MAX		   255
 
@@ -698,7 +699,7 @@ static void deluxe_j_set_backlight(struct msm_fb_data_type *mfd)
 
 	write_display_brightness[2] = deluxe_j_shrink_pwm((unsigned char)(mfd->bl_level));
 
-	if (! display_is_on) {
+	if (!display_is_on) {
 		PR_DISP_ERR("%s: changing backlight while the display is off!\n", __func__);
 		return;
 	}
@@ -948,8 +949,6 @@ void __init deluxe_j_init_fb(void)
 	platform_device_register(&msm_fb_device);
 
 	if(panel_type != PANEL_ID_NONE) {
-		if ((board_mfg_mode() == 4) || (board_mfg_mode() == 5))
-			 mdp_pdata.cont_splash_enabled = 0x0;
 		msm_fb_register_device("mdp", &mdp_pdata);
 		msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 		wa_xo = msm_xo_get(MSM_XO_TCXO_D0, "mipi");
@@ -977,7 +976,7 @@ static int __init deluxe_j_panel_init(void)
 
 	if (panel_type == PANEL_ID_DLXJ_SHARP_RENESAS) {
 		mipi_video_sharp_init();
-		printk(KERN_INFO "match PANEL_ID_DLX_SHARP_RENESAS panel_type\n");
+		printk(KERN_INFO "match PANEL_ID_DLXJ_SHARP_RENESAS panel_type\n");
 	} else {
 		printk(KERN_INFO "Mis-match panel_type\n");
 		return -ENODEV;
@@ -987,5 +986,4 @@ static int __init deluxe_j_panel_init(void)
 
 	return platform_driver_register(&this_driver);
 }
-late_initcall(deluxe_j_panel_init);
-
+device_initcall_sync(deluxe_j_panel_init);
