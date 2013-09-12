@@ -977,6 +977,9 @@ static int __init deluxe_j_panel_init(void)
 	if (panel_type == PANEL_ID_DLXJ_SHARP_RENESAS) {
 		mipi_video_sharp_init();
 		printk(KERN_INFO "match PANEL_ID_DLXJ_SHARP_RENESAS panel_type\n");
+	else if (panel_type == PANEL_ID_DLXJ_SONY_RENESAS) {
+      		mipi_video_sony_init();
+     		printk(KERN_INFO "match PANEL_ID_DLXJ_SONY_RENESAS panel_type\n");
 	} else {
 		printk(KERN_INFO "Mis-match panel_type\n");
 		return -ENODEV;
