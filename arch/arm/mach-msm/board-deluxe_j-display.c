@@ -596,8 +596,8 @@ static int deluxe_j_lcd_on(struct platform_device *pdev)
 		PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
 
 		if (mipi->mode == DSI_VIDEO_MODE) {
-			cmdreq.cmds = video_on_cmds;
-			cmdreq.cmds_cnt = video_on_cmds_count;
+			cmdreq.cmds = sharp_video_on_cmds;
+			cmdreq.cmds_cnt = ARRAY_SIZE(sharp_video_on_cmds);
 			cmdreq.flags = CMD_REQ_COMMIT;
 			cmdreq.rlen = 0;
 			cmdreq.cb = NULL;
