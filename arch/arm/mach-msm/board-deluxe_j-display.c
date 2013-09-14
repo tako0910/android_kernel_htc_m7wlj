@@ -517,10 +517,7 @@ static char BackLight_Control_6[8]= {
 static char Manufacture_Command_setting[4] = {0xD6, 0x01};
 static char nop[4] = {0x00, 0x00};
 static char CABC[2] = {0x55, 0x01};
-static char hsync_output[4] = {0xC3, 0x01, 0x00, 0x10};
-static char protect_on[4] = {0xB0, 0x03};
 static char TE_OUT[4] = {0x35, 0x00};
-static char deep_standby_off[2] = {0xB1, 0x01};
 
 static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(interface_setting_0), interface_setting_0},
@@ -537,36 +534,9 @@ static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE,  1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
 };
 
-static struct dsi_cmd_desc sony_video_on_cmds[] = {
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(interface_setting_0), interface_setting_0},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(hsync_output), hsync_output},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(Color_enhancement), Color_enhancement},
-
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(BackLight_Control_6), BackLight_Control_6},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(Manufacture_Command_setting), Manufacture_Command_setting},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(protect_on), protect_on},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(CABC), CABC},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(TE_OUT), TE_OUT},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
-};
-
 static struct dsi_cmd_desc sharp_display_off_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 20, sizeof(display_off), display_off},
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 50, sizeof(enter_sleep), enter_sleep}
-};
-
-static struct dsi_cmd_desc sony_display_off_cmds[] = {
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(display_off), display_off},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 48, sizeof(enter_sleep), enter_sleep},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(interface_setting_0), interface_setting_0},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(nop), nop},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(deep_standby_off), deep_standby_off},
 };
 
 static char renesas_color_en_on[2]= {0xCA, 0x01};
@@ -680,8 +650,8 @@ static int deluxe_j_display_off(struct platform_device *pdev)
 
 	mfd = platform_get_drvdata(pdev);
 
-	cmdreq.cmds = display_off_cmds;
-	cmdreq.cmds_cnt = display_off_cmds_count;
+	cmdreq.cmds = sharp_display_off_cmds;
+	cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
 	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
@@ -1005,28 +975,6 @@ static int __init mipi_video_sony_init(void)
 						MIPI_DSI_PANEL_FWVGA_PT);
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
-
-	video_on_cmds = sony_video_on_cmds;
-	video_on_cmds_count = ARRAY_SIZE(sony_video_on_cmds);
-	display_off_cmds = sony_display_off_cmds;
-	display_off_cmds_count = ARRAY_SIZE(sony_display_off_cmds);
-
-        backlight_cmds = renesas_cmd_backlight_cmds;
-        backlight_cmds_count = ARRAY_SIZE(renesas_cmd_backlight_cmds);
-#ifdef CABC_DIMMING_SWITCH
-        dim_on_cmds = renesas_dim_on_cmds;
-        dim_on_cmds_count = ARRAY_SIZE(renesas_dim_on_cmds);
-        dim_off_cmds = renesas_dim_off_cmds;
-        dim_off_cmds_count = ARRAY_SIZE(renesas_dim_off_cmds);
-#endif
-        color_en_on_cmds = sharp_renesas_color_enhance_on_cmds;
-        color_en_on_cmds_count = ARRAY_SIZE(sharp_renesas_color_enhance_on_cmds);
-        color_en_off_cmds = sharp_renesas_color_enhance_off_cmds;
-        color_en_off_cmds_count = ARRAY_SIZE(sharp_renesas_color_enhance_off_cmds);
-
-        pwm_min = 13;
-        pwm_default = 82;
-        pwm_max = 255;
 
 	return ret;
 }
