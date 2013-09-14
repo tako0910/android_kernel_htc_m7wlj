@@ -980,7 +980,7 @@ static int __init mipi_video_sony_init(void)
 	pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db;
 	pinfo.mipi.esc_byte_ratio = 2;
 
-	ret = mipi_monarudo_device_register(&pinfo, MIPI_DSI_PRIM,
+	ret = mipi_deluxe_j_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_FWVGA_PT);
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
