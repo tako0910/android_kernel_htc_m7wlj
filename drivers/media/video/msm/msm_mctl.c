@@ -306,7 +306,7 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 		cdata.is_af_supported = 0;
 		cdata.is_ois_supported = 0;
 		cdata.is_cal_supported = 0; 
-#ifndef CONFIG_MACH_MONARUDO
+#ifndef CONFIG_MACH_DELUXE_J
 		cdata.small_step_damping = 0;
 		cdata.medium_step_damping = 0;
 		cdata.big_step_damping = 0;
@@ -324,7 +324,7 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 			cdata.is_af_supported = 1;
 			cdata.is_ois_supported = p_mctl->actctrl->is_ois_supported;
 			cdata.is_cal_supported = p_mctl->actctrl->is_cal_supported; 
-#ifndef CONFIG_MACH_MONARUDO
+#ifndef CONFIG_MACH_DELUXE_J
 			cdata.small_step_damping = p_mctl->actctrl->small_step_damping;
 			cdata.medium_step_damping = p_mctl->actctrl->medium_step_damping;
 			cdata.big_step_damping = p_mctl->actctrl->big_step_damping;
