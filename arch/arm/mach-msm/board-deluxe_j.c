@@ -1044,7 +1044,8 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.icharger.is_ovp = pm8921_is_charger_ovp,
 	.icharger.is_batt_temp_fault_disable_chg =
 						pm8921_is_batt_temp_fault_disable_chg,
-	.icharger.is_vbus_unstable = pm8921_is_vbus_unstable,
+	//.icharger.is_vbus_unstable = pm8921_is_vbus_unstable,
+	.icharger.is_under_rating = pm8921_is_pwrsrc_under_rating,
 	.icharger.charger_change_notifier_register =
 						cable_detect_register_notifier,
 	.icharger.dump_all = pm8921_dump_all,
