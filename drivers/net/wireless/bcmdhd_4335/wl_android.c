@@ -1679,6 +1679,15 @@ static int wl_android_set_power_mode(struct net_device *dev, char *command, int 
 			dhdhtc_set_power_control(1, DHDHTC_POWER_CTRL_FOTA_DOWNLOADING);
 			dhdhtc_update_wifi_power_mode(screen_off);
 			break;
+		
+		case 40:
+			dhdhtc_set_power_control(0, DHDHTC_POWER_CTRL_KDDI_APK);
+			dhdhtc_update_wifi_power_mode(screen_off);
+			break;
+		case 41:
+			dhdhtc_set_power_control(1, DHDHTC_POWER_CTRL_KDDI_APK);
+			dhdhtc_update_wifi_power_mode(screen_off);
+			break;
 
 		case 87: 
 			printf("wifilock release\n");

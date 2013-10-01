@@ -40,25 +40,29 @@ static int m7wl_get_hw_component(void)
 
 static int m7wl_enable_digital_mic(void)
 {
-    printk(KERN_INFO "m7wlj_enable_digital_mic:skuid=0x%x, system_rev=%x\n", skuid, system_rev);
+    int ret;
     
     if ((system_rev == XA)||(system_rev == XB)||(system_rev == XC)){
         if ((skuid & 0xFF) == 0x3) {
             printk(KERN_INFO "(skuid & 0xFF) == 0x3\n");
-            return 1;
+            ret = 1;
         }
         else if ((skuid & 0xFF) == 0x2) {
             printk(KERN_INFO "(skuid & 0xFF) == 0x2\n");
-            return 1;
+            ret = 1;
         }
-        return 0;
+        ret = 0;
     }
     else{
         if ((skuid & 0xFFF00) == 0x35B00)
-            return 1;
+            ret = 1;
+        else if ((skuid & 0xFFF00) == 0x38A00)
+            ret = 2;
         else
-            return 2;
+            ret = 3;
     }
+    printk(KERN_INFO "m7wlj_enable_digital_mic:skuid=0x%x, system_rev=%x return %d\n", skuid, system_rev,ret);
+    return ret;
 }
 
 void apq8064_set_q6_effect_mode(int mode)

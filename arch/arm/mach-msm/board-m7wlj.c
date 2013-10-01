@@ -4580,7 +4580,7 @@ static unsigned dlx_perf_acpu_table[] = {
 	810000000, 
 	1026000000,
 	1134000000,
-	1512000000, 
+	1566000000, 
 };
 
 static struct perflock_data dlx_floor_data = {
@@ -4611,18 +4611,6 @@ void __init perftable_fix_up(void)
 {
 	uint32_t speed;
 	speed = msm_get_cpu_speed_bin();
-	
-	if(speed == 0)
-		dlx_perf_acpu_table[PERF_LOCK_HIGHEST] = 1512000000;
-	
-	else if(speed == 1)
-		dlx_perf_acpu_table[PERF_LOCK_HIGHEST] = 1566000000;
-	
-	else if(speed == 2)
-		dlx_perf_acpu_table[PERF_LOCK_HIGHEST] = 1512000000;
-	
-	else
-		dlx_perf_acpu_table[PERF_LOCK_HIGHEST] = 1512000000;
 }
 
 #endif

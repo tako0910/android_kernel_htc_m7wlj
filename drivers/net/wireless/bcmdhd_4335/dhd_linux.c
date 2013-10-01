@@ -904,6 +904,14 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 					DHD_ERROR(("%s Set dhdhtc_update_wifi_power_mode error %d\n", __FUNCTION__, ret));
 					goto exit;
 				}
+                
+                DHD_ERROR(("Clear KDDI APK bit when screen off\n"));
+				dhdhtc_set_power_control(0, DHDHTC_POWER_CTRL_KDDI_APK);
+				ret = dhdhtc_update_wifi_power_mode(is_screen_off);
+				if(ret < 0){
+					DHD_ERROR(("%s Set dhdhtc_update_wifi_power_mode error %d\n", __FUNCTION__, ret));
+					goto exit;
+				}
 				ret = dhdhtc_update_dtim_listen_interval(is_screen_off);
 				if(ret < 0){
 					DHD_ERROR(("%s Set dhdhtc_update_dtim_listen_interval error %d\n", __FUNCTION__, ret));
@@ -1048,6 +1056,7 @@ int dhdhtc_update_wifi_power_mode(int is_screen_off)
 		printf("dhd is not attached\n");
 		return -1;
 	}
+
 
 	if (dhdhtc_power_ctrl_mask) {
 		printf("power active. ctrl_mask: 0x%x\n", dhdhtc_power_ctrl_mask);
