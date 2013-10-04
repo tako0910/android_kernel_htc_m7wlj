@@ -178,7 +178,7 @@ extern void hdmi_hpd_feature(int enable);
 
 #if defined (CONFIG_FELICA_DD) || defined (CONFIG_FELICA_CXD2235_DD)
 #include <linux/platform_device.h>
-#include <linux/felica.h>
+#include <linux/felica_cxd2235.h>
 #endif
 
 #define TFA9887_I2C_SLAVE_ADDR  (0x68 >> 1)
