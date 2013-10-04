@@ -49,7 +49,8 @@
 #include <mach/ion.h>
 
 #include <linux/usb/msm_hsusb.h>
-#include <linux/usb/android.h>
+#include <mach/htc_usb.h>
+#include <linux/usb/android_composite.h>
 #include <mach/socinfo.h>
 #include <mach/msm_spi.h>
 #include "timer.h"
@@ -1696,7 +1697,6 @@ out:
 }
 
 static struct android_usb_platform_data android_usb_pdata = {
-#if 0
 	.vendor_id	= 0x0BB4,
 	.product_id	= 0x0dfe,
 	.version	= 0x0100,
@@ -1706,16 +1706,13 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.products = usb_products,
 	.num_functions = ARRAY_SIZE(usb_functions_all),
 	.functions = usb_functions_all,
-#endif
 	.update_pid_and_serial_num = usb_diag_update_pid_and_serial_num,
-#if 0
 	.usb_id_pin_gpio = USB1_HS_ID_GPIO,
 	.usb_rmnet_interface = "HSIC,HSIC",
 	.usb_diag_interface = "diag,diag_mdm",
 	.fserial_init_string = "HSIC:modem,tty,tty:autobot,tty:serial,tty:autobot",
 	.serial_number = "000000000000",
 	.nluns		= 1,
-#endif
 };
 
 static struct platform_device android_usb_device = {
@@ -1948,7 +1945,6 @@ void deluxe_j_add_usb_devices(void)
 {
 	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
 
-#if 0
 	android_usb_pdata.products[0].product_id =
 			android_usb_pdata.product_id;
 
@@ -1970,7 +1966,6 @@ void deluxe_j_add_usb_devices(void)
 
 	platform_device_register(&apq8064_device_gadget_peripheral);
 	platform_device_register(&android_usb_device);
-#endif
 }
 
 
@@ -4092,9 +4087,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&apq8064_device_ssbi_pmic2,
 	&msm_device_smd_apq8064,
 	&apq8064_device_otg,
-	&apq8064_device_gadget_peripheral,
 	&apq8064_device_hsusb_host,
-	&android_usb_device,
 	&msm_device_wcnss_wlan,
 	&apq8064_fmem_device,
 #ifdef CONFIG_ANDROID_PMEM
