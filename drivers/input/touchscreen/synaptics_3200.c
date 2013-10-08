@@ -273,7 +273,7 @@ static void sweep2wake_presspwr(struct work_struct * sweep2wake_presspwr_work) {
 	printk("sending event KEY_POWER 1\n");
 	if (sleep_wake_vibration_time)
 	{
-		vibrate(sleep_wake_vibration_time * 5);
+		//vibrate(sleep_wake_vibration_time * 5);
 	}
 	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
 	input_sync(sweep2wake_pwrdev);
@@ -375,7 +375,7 @@ static void sweep2wake_longtap_count(struct work_struct * sweep2wake_longtap_cou
 			if (scr_suspended == false || pwp_switch == 0 || (pwp_switch == 1 && !power_key_check_in_pocket())) {
 				if (sleep_wake_vibration_time)
 				{
-					vibrate(sleep_wake_vibration_time * 5);
+					//vibrate(sleep_wake_vibration_time * 5);
 				}
 				printk("LONGTAP sending event KEY_POWER 1\n");
 				input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
