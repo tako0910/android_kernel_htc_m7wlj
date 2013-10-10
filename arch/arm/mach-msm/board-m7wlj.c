@@ -1891,7 +1891,40 @@ void msm_hsusb_setup_gpio(enum usb_otg_state state)
 #define PMIC_GPIO_DP_IRQ    PM8921_GPIO_IRQ(PM8921_IRQ_BASE, PMIC_GPIO_DP)
 #define MSM_MPM_PIN_USB1_OTGSESSVLD 40
 
-static int msm_hsusb_vbus_power(bool on);
+static uint32_t uart_tx_gpio_tbl[] = {
+	GPIO_CFG(UART_TX, 2, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(UART_TX, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+};
+static uint32_t uart_rx_gpio_tbl[] = {
+	GPIO_CFG(UART_RX, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(UART_RX, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+};
+
+static int msm_hsusb_vbus_power(bool on)
+{
+	static int prev_on;
+
+	if (on == prev_on)
+		return 0;
+
+	if (on) {
+
+		gpio_tlmm_config(uart_tx_gpio_tbl[1], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(uart_rx_gpio_tbl[1], GPIO_CFG_ENABLE);
+		gpio_set_value(UART_TX, 0);
+		gpio_set_value(UART_RX, 0);
+	} else {
+
+		gpio_tlmm_config(uart_tx_gpio_tbl[0], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(uart_rx_gpio_tbl[0], GPIO_CFG_ENABLE);
+	}
+
+	pr_info("%s(%s): success\n", __func__, on?"on":"off");
+
+	prev_on = on;
+
+	return 0;
+}
 
 static struct msm_otg_platform_data msm_otg_pdata = {
 	.mode				= USB_OTG,
