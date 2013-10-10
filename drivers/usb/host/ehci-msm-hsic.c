@@ -1549,7 +1549,7 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
 	mehci->ehci.resume_sof_bug = 1;
 
 	if (pdata)
-		mehci->ehci.log2_irq_thresh = pdata->log2_irq_thresh;
+		mehci->ehci.max_log2_irq_thresh = pdata->log2_irq_thresh;
 
 	res = platform_get_resource_byname(pdev,
 			IORESOURCE_IRQ,
