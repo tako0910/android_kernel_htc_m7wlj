@@ -246,6 +246,8 @@ struct hc_driver {
 			unsigned extra);
 	void	(*dump_regs)(struct usb_hcd *);
 	void	(*dump_qh_qtd)(struct usb_hcd *);
+        void    (*enable_ulpi_control)(struct usb_hcd *hcd, u32 linestate);
+        void    (*disable_ulpi_control)(struct usb_hcd *hcd);
 	void    (*reset_sof_bug_handler)(struct usb_hcd *hcd, u32 val);
 	
 	int	(*set_int_latency)(struct usb_hcd *hcd, int latency);
