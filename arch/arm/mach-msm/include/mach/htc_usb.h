@@ -174,12 +174,12 @@ static char *usb_functions_rndis_adb_diag_modem[] = {
 };
 static char *usb_functions_accessory[] = { "accessory" };
 static char *usb_functions_accessory_adb[] = { "accessory", "adb" };
-
+/*
 static char *usb_functions_audio[] = { "audio_source"};
 static char *usb_functions_audio_adb[] = { "audio_source", "adb" };
 static char *usb_functions_accessory_audio[] = { "accessory", "audio_source"};
 static char *usb_functions_accessory_audio_adb[] = { "accessory", "audio_source", "adb" };
-
+*/
 static char *usb_functions_projector[] = {
 	"mass_storage",
 	"projector",
@@ -1253,6 +1253,7 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_accessory_adb),
 		.functions	= usb_functions_accessory_adb,
 	},
+/*
 	{ 
 		.vendor_id	= USB_ACCESSORY_VENDOR_ID,
 		.product_id	= USB_AUDIO_PRODUCT_ID,
@@ -1277,6 +1278,7 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_accessory_audio_adb),
 		.functions	= usb_functions_accessory_audio_adb,
 	},
+*/
 #ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
 	{
 		.product_id	= 0x0fd2,
