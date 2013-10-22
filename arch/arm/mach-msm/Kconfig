@@ -2651,6 +2651,19 @@ config MACH_MONARUDO
 	help
 	  Support for the HTC APQ8064 MONARUDO.
 
+config MACH_DELUXE_J
+        depends on ARCH_APQ8064
+        bool "APQ8064 DELUXE_J"
+        help
+          Support for the HTC APQ8064 DELUXE_J.
+
+config MACH_M7_WLJ
+        depends on ARCH_APQ8064
+        bool "APQ8064 M7_WLJ"
+        select FB_MSM_MIPI_DSI
+        help
+          Support for the HTC APQ8064 M7_WLJ.
+
 config MACH_M7_UL
 	depends on ARCH_APQ8064
 	bool "APQ8064 M7_UL"
