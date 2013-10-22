@@ -177,7 +177,7 @@ static int hdmi_core_power(int on, int show);
 extern void hdmi_hpd_feature(int enable);
 #endif
 
-#if defined (CONFIG_FELICA_DD) || defined (CONFIG_FELICA_CXD2235_DD)
+#ifdef CONFIG_FELICA_CXD2235_DD
 #include <linux/platform_device.h>
 #include <linux/felica_cxd2235.h>
 #endif
@@ -2192,7 +2192,7 @@ static void headset_device_register(void)
 	platform_device_register(&htc_headset_mgr);
 }
 
-#if defined (CONFIG_FELICA_DD) || defined (CONFIG_FELICA_CXD2235_DD)
+#ifdef CONFIG_FELICA_CXD2235_DD
 static void deluxe_j_felica_pon_gpio_func(int rwtype, int wvalue, int *rvalue)
 {
 	if (rwtype == GPIOWRITE) {
@@ -5112,7 +5112,7 @@ static void __init deluxe_j_common_init(void)
 			}
 	}
 
-#if defined (CONFIG_FELICA_DD) || defined (CONFIG_FELICA_CXD2235_DD)
+#ifdef CONFIG_FELICA_CXD2235_DD
 	deluxe_j_init_felica();
 #endif
 
