@@ -329,11 +329,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"IS", "IS", 1},
 	{"IT", "IT", 1},
 	{"ID", "ID", 1},
-#if defined(BCM4335_CHIP)
-	{"JP", "JP", 27},
-#else
 	{"JP", "JP", 8},
-#endif
 	{"KR", "KR", 24},
 	{"KW", "KW", 1},
 	{"LI", "LI", 1},

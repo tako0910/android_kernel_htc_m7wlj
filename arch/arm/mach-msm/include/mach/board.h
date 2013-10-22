@@ -544,7 +544,6 @@ struct msm_panel_common_pdata {
 	unsigned num_mdp_clk;
 	int *mdp_core_clk_table;
 	u32 mdp_max_clk;
-	u32 mdp_min_clk;
 	u32 mdp_max_bw;
 	u32 mdp_bw_ab_factor;
 	u32 mdp_bw_ib_factor;
@@ -597,7 +596,6 @@ struct mipi_dsi_platform_data {
 	int (*get_lane_config)(void);
 	char (*splash_is_enabled)(void);
 	int target_type;
-	int (*deferred_reset_driver_ic)(void);
 };
 
 enum mipi_dsi_3d_ctrl {

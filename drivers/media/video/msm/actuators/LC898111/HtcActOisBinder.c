@@ -249,6 +249,7 @@ void HtcActOisBinder_open_init(void)
 		ois_data_32 = (g_otp_data[28] << 24) + (g_otp_data[29] << 16) + (g_otp_data[30] << 8) + g_otp_data[31];
 		RamWrite32A(0x1928, ois_data_32); 
 
+
 		
 		ois_data_8 = g_otp_data[32];
 		RegWriteA_lc898111(0x0264, ois_data_8); 

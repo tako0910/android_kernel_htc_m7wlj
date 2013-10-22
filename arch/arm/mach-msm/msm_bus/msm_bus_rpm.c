@@ -38,7 +38,6 @@ void msm_bus_rpm_set_mt_mask()
 	msm_rpmrs_set_bits_noirq(MSM_RPM_CTX_SET_0, mt, 1,
 		&mask);
 #endif
-
 }
 
 bool msm_bus_rpm_is_mem_interleaved(void)

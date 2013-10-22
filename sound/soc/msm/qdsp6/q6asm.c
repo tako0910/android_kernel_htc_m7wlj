@@ -2841,9 +2841,6 @@ int q6asm_media_format_block(struct audio_client *ac, uint32_t format)
 	case FORMAT_DTS_LBR:
 		fmt.format = DTS_LBR;
 		break;
-	case FORMAT_LINEAR_PCM:
-		fmt.format = LINEAR_PCM;
-		break;
 	default:
 		pr_err("Invalid format[%d]\n", format);
 		goto fail_cmd;

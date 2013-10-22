@@ -184,7 +184,6 @@ struct get_display_capabilities {
 	u32 dwPixelFormatSupported;
 } __attribute__ ((__packed__));
 
-/*
 static u32 display_setting[32][2] = {
 	{640,360},{640,480},{720,480},{720,576},
 	{800,480},{800,600},{848,480},{854,480},
@@ -195,7 +194,6 @@ static u32 display_setting[32][2] = {
 	{1680,1050},{1920,1080},{1920,1200},{0,0},
 	{0,0},{0,0},{0,0},{0,0},
 };
-*/
 
 struct set_display_info {
 	u16 wWidth;

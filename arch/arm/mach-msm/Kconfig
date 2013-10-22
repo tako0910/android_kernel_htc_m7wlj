@@ -209,35 +209,6 @@ config ARCH_APQ8064
 	select MSM_IOMMU_GPU_SYNC
 	select MSM_CPU_PWRCTL
 
-config ARCH_APQ8064_M7
-	bool "APQ8064_M7"
-	select ARCH_MSM_KRAITMP
-	select GPIO_MSM_V2
-	select ARM_GIC
-	select CPU_V7
-	select MSM_SCM if SMP
-	select MSM_GPIOMUX
-	select MSM_REMOTE_SPINLOCK_SFPB
-	select MSM_PIL
-	select MSM_QDSP6_APR
-	select MSM_QDSP6_CODECS
-	select MSM_AUDIO_QDSP6 if SND_SOC
-	select MULTI_IRQ_HANDLER
-	select MSM_RPM
-	select MSM_SPM_V2
-	select MSM_L2_SPM
-	select MSM_PM8X60 if PM
-	select CPU_HAS_L2_PMU
-	select HOLES_IN_ZONE if SPARSEMEM
-	select CLEANCACHE
-	select QCACHE
-	select MIGHT_HAVE_PCI
-	select ARCH_SUPPORTS_MSI
-	select ARM_HAS_SG_CHAIN
-	select MSM_KRAIT_WFE_FIXUP
-	select MSM_CPU_PWRCTL
-	select MSM_IOMMU_GPU_SYNC
-
 config ARCH_MSM8974
 	bool "MSM8974"
 	select ARCH_MSM_KRAITMP
@@ -291,12 +262,6 @@ config MACH_VALENTE_WX
 	bool "Valente#WX"
 	help
 	  Support for the HTC Valente#WX
-
-config MACH_ZIP_CL_MI2S_DATA_SWITCH
-	depends on MACH_ZIP_CL
-	bool "ZIP_CL_MI2S_DATA_SWITCH"
-	help
-	  Support for the workaround for ZIP_CL MI2S data Input/Output switch
 
 config ARCH_FSM9XXX
 	bool "FSM9XXX"
@@ -1610,12 +1575,6 @@ config MSM_RPCSERVER_WATCHDOG
 	help
 	  The dog_keepalive server handles watchdog events.
 
-config USERSPACE_VOLTAGE_CONTROL
-	bool "Enable Userspace CPU Voltage Control"
-	default y
-	help
-		userspace voltage control
-
 config MSM_RPC_WATCHDOG
 	depends on MSM_ONCRPCROUTER
 	default n
@@ -2692,25 +2651,12 @@ config MACH_MONARUDO
 	help
 	  Support for the HTC APQ8064 MONARUDO.
 
-config MACH_DELUXE_J
-        depends on ARCH_APQ8064
-        bool "APQ8064 DELUXE_J"
-        help
-          Support for the HTC APQ8064 DELUXE_J.
-
-config MACH_M7_WLJ
-        depends on ARCH_APQ8064
-        bool "APQ8064 M7_WLJ"
-        select FB_MSM_MIPI_DSI
-        help
-          Support for the HTC APQ8064 M7_WLJ.
-
-
-config MACH_M7_DXG
-        depends on ARCH_APQ8064
-        bool "APQ8064 M7_DXG"
-        help
-          Support for the HTC APQ8064 M7_DXG.
+config MACH_M7_UL
+	depends on ARCH_APQ8064
+	bool "APQ8064 M7_UL"
+	select FB_MSM_MIPI_DSI
+	help
+	  Support for the HTC APQ8064 M7_UL.
 
 config MACH_M7_DXG
         depends on ARCH_APQ8064

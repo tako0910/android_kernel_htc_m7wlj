@@ -1604,7 +1604,7 @@ struct msm_actuator_cfg_data {
 	uint8_t is_af_supported;
 	uint8_t is_ois_supported;
     uint8_t is_cal_supported; 
-#ifndef CONFIG_MACH_DELUXE_J
+#ifndef CONFIG_MACH_MONARUDO
 	int8_t enable_focus_step_log;
 	uint8_t small_step_damping;
 	uint8_t medium_step_damping;

@@ -991,11 +991,6 @@ static inline void hci_role_switch_cfm(struct hci_conn *conn, __u8 status, __u8 
 	read_unlock_bh(&hci_cb_list_lock);
 }
 
-static inline int is_prefer_slave(bdaddr_t *addr) {
-	char *blacklist = "00:09:93";	
-	return !strncmp(batostr(addr), blacklist, 8);
-}
-
 int hci_register_cb(struct hci_cb *hcb);
 int hci_unregister_cb(struct hci_cb *hcb);
 
