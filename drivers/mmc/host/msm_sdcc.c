@@ -562,7 +562,6 @@ static void msmsdcc_reset_and_restore(struct msmsdcc_host *host)
 				msmsdcc_dml_init(host);
 		}
 	} else {
-
 		
 		u32	mci_clk = 0;
 		u32	mci_mask0 = 0;

@@ -374,11 +374,6 @@ static struct attribute *battery_g[] = {
 	NULL,
 };
 
-static struct attribute *battery_g[] = {
-	&charging_enabled_attr.attr,
-	NULL,
-};
-
 static struct attribute_group cpufreq_attr_group = {
 	.attrs = cpufreq_g,
 };

@@ -3022,13 +3022,6 @@ static void htc_vbus_notify(int online)
 }
 #endif
 
-void msm_otg_set_disable_usb(int disable_usb)
-{
-	struct msm_otg *motg = the_msm_otg;
-
-	queue_work(system_nrt_wq, &motg->sm_work);
-}
-
 int msm_otg_get_vbus_state(void)
 {
 	return htc_otg_vbus;

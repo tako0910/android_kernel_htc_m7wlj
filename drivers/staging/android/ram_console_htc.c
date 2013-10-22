@@ -800,32 +800,6 @@ static int __init ram_console_late_init(void)
 	}
 #endif
 
-#ifdef CONFIG_DEBUG_LAST_BLDR_LOG
-	if (last_bldr_log != NULL)
-	{
-		last_bldr_log_buf = kmalloc(last_bldr_log_size, GFP_KERNEL);
-		if (last_bldr_log_buf == NULL)
-			printk(KERN_ERR "[K] ram_console: failed to allocate buffer %ld for last bldr log\n", last_bldr_log_size);
-		else {
-			printk(KERN_INFO "[K] ram_console: allocate buffer %ld for last bldr log\n", last_bldr_log_size);
-			bldr_log_parser(last_bldr_log, last_bldr_log_buf, last_bldr_log_size, &last_bldr_log_buf_size);
-		}
-	}
-#endif
-
-#ifdef CONFIG_DEBUG_BLDR_LOG
-	if (bldr_log != NULL)
-	{
-		bldr_log_buf = kmalloc(bldr_log_size, GFP_KERNEL);
-		if (bldr_log_buf == NULL)
-			printk(KERN_ERR "[K] ram_console: failed to allocate buffer %ld for bldr log\n", bldr_log_size);
-		else {
-			printk(KERN_INFO "[K] ram_console: allocate buffer %ld for bldr log\n", bldr_log_size);
-			bldr_log_parser(bldr_log, bldr_log_buf, bldr_log_size, &bldr_log_buf_size);
-		}
-	}
-#endif
-
 	if (ram_console_old_log == NULL)
 		return 0;
 #ifdef CONFIG_ANDROID_RAM_CONSOLE_EARLY_INIT

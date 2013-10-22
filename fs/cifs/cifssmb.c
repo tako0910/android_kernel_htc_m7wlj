@@ -3956,8 +3956,7 @@ setCifsAclRetry:
 
 	if (pntsd && acllen) {
 		memcpy((char *)pSMBr + offsetof(struct smb_hdr, Protocol) +
-			data_offset, pntsd, acllen);
-
+				data_offset, pntsd, acllen);
 		inc_rfc1001_len(pSMB, byte_count + data_count);
 	} else
 		inc_rfc1001_len(pSMB, byte_count);
@@ -5802,8 +5801,7 @@ CIFSSMBSetFileDisposition(const int xid, struct cifs_tcon *tcon,
 	param_offset = offsetof(struct smb_com_transaction2_sfi_req, Fid) - 4;
 	offset = param_offset + params;
 
-	data_offset = (char *)pSMB +
-		offsetof(struct smb_hdr, Protocol) + offset;
+	data_offset = (char *) (&pSMB->hdr.Protocol) + offset;
 
 	count = 1;
 	pSMB->MaxParameterCount = cpu_to_le16(2);

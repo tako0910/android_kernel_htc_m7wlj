@@ -110,6 +110,7 @@ static int crashed_modem;
 int mdm_is_in_restart = 0;
 #endif 
 
+
 static LIST_HEAD(restart_log_list);
 static LIST_HEAD(subsystem_list);
 static DEFINE_SPINLOCK(subsystem_list_lock);
@@ -554,11 +555,6 @@ static void __subsystem_restart(struct subsys_data *subsys)
 int subsystem_restart(const char *subsys_name)
 {
 	struct subsys_data *subsys;
-	
-	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
-	extern bool ehci_hsic_is_2nd_enum_done(void);
-	#endif 
-	
 
 	if (!subsys_name) {
 		pr_err("Invalid subsystem name.\n");

@@ -1609,10 +1609,6 @@ printk(KERN_INFO "msm_serial_hsl: port[%d] mapbase:%x\n", port->line, port->mapb
 		D("%s () clk_disabl, port->line %d, ir\n", __func__, port->line);
 		clk_disable_unprepare(msm_hsl_port->pclk);
 	}
-		
-	ret = device_create_file(msm_hsl_port->irda_dev, &dev_attr_enable_irda);
-	if (ret)
-		goto err_create_ls_device_file;
 
 	D("%s ():port->line %d, ir\n", __func__, port->line);
 		msm_hsl_port->irda_class = class_create(THIS_MODULE, "htc_irda");

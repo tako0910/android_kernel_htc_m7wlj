@@ -22,9 +22,6 @@ static int enable_log = 0;
 static DEFINE_MUTEX(probe_data_mutexlock);
 
 extern void (*record_probe_data_fp)(struct sock *sk, int type, size_t size, unsigned long long t_pre);
-#if defined(CONFIG_USB_EHCI_HCD) && defined(CONFIG_USB_EHCI_MSM_HSIC)
-extern void (*set_htc_monitor_resume_state_fp)(void);
-#endif
 void record_probe_data(struct sock *sk, int type, size_t size, unsigned long long t_pre);
 void set_htc_monitor_resume_state(void);
 
@@ -80,6 +77,8 @@ static ssize_t htc_monitor_param_set(struct device *dev,
 			htc_monitor_param = 1;
 			pr_info(" htc_monitor_param: %d\n",  htc_monitor_param);
 			record_probe_data_fp = record_probe_data;
+			
+			
 		}
 	}
 

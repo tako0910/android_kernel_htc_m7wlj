@@ -688,7 +688,6 @@ wl_cfgp2p_disable_discovery(struct wl_priv *wl)
 {
 	s32 ret = BCME_OK;
 	CFGP2P_DBG((" enter\n"));
-	wl_clr_p2p_status(wl, DISCOVERY_ON);
 
     if (!wl->p2p) {
 		WL_ERR(("wl->p2p is not initialized\n"));
