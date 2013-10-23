@@ -985,7 +985,7 @@ static int __init mipi_video_sony_init(void)
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
 
-	strncat(ptype, "PANEL_ID_DLX_SONY_RENESAS", ptype_len);
+	strncat(ptype, "PANEL_ID_DLXJ_SONY_RENESAS", ptype_len);
 
 	video_on_cmds = sony_video_on_cmds;
 	video_on_cmds_count = ARRAY_SIZE(sony_video_on_cmds);
