@@ -338,7 +338,7 @@ struct msm_camera_sensor_platform_info {
 	void *privacy_light_info;
 	enum sensor_mount_angle sensor_mount_angle; 
 	bool ews_enable;
-	
+	bool board_control_reset_pin;
 };
 
 enum msm_camera_actuator_name {
@@ -449,6 +449,8 @@ struct msm_camera_sensor_info {
 #endif
 	
 	int sensor_cut;
+	int dual_camera;
+	struct clk* main_clk;
 
 };
 
@@ -540,13 +542,19 @@ struct msm_panel_common_pdata {
 	void (*panel_config_gpio)(int);
 	int (*vga_switch)(int select_vga);
 	int *gpio_num;
+#ifdef CONFIG_FB_MSM_412
 	int mdp_core_clk_rate;
 	unsigned num_mdp_clk;
 	int *mdp_core_clk_table;
 	u32 mdp_max_clk;
+	u32 mdp_min_clk;
+#else
+	u32 mdp_max_clk;
 	u32 mdp_max_bw;
 	u32 mdp_bw_ab_factor;
 	u32 mdp_bw_ib_factor;
+#endif
+
 #ifdef CONFIG_MSM_BUS_SCALING
 	struct msm_bus_scale_pdata *mdp_bus_scale_table;
 #endif
@@ -625,6 +633,7 @@ struct mipi_dsi_panel_platform_data {
 	void (*dsi_pwm_cfg)(void);
 	char enable_wled_bl_ctrl;
 	void (*gpio_set_backlight)(int bl_level);
+	unsigned char (*shrink_pwm)(int val);
 };
 
 struct lvds_panel_platform_data {
