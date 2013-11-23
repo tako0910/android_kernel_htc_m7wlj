@@ -2050,7 +2050,6 @@ static int m7wlj_ov4688_vreg_on(void)
 	pr_info("%s\n", __func__);
 
 
-
 	pr_info("%s: 8921_lvs4 1800000\n", __func__);
 	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
 	pr_info("%s: 8921_lvs4 1800000 (%d)\n", __func__, rc);
@@ -3587,6 +3586,22 @@ struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_0x20_ov2722[] = {
 #endif
 };
 
+struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_0x20_ov2722[] = {
+
+#ifdef CONFIG_OV4688
+		{
+		I2C_BOARD_INFO("ov4688_0x20", 0x20 >> 1),
+		.platform_data = &msm_camera_sensor_ov4688_data,
+		},
+#endif
+#ifdef CONFIG_OV2722
+		{
+		I2C_BOARD_INFO("ov2722", 0x6c >> 1),
+		.platform_data = &msm_camera_sensor_ov2722_data,
+		}
+#endif
+};
+
 #endif
 #endif
 
@@ -4001,7 +4016,4 @@ void __init m7wlj_init_cam(void)
 	}
 #endif
 }
-
-
-
 
