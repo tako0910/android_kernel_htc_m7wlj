@@ -3586,6 +3586,22 @@ struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_0x20_ov2722[] = {
 #endif
 };
 
+struct i2c_board_info m7wlj_camera_i2c_boardinfo_ov4688_0x20_ov2722[] = {
+
+#ifdef CONFIG_OV4688
+		{
+		I2C_BOARD_INFO("ov4688_0x20", 0x20 >> 1),
+		.platform_data = &msm_camera_sensor_ov4688_data,
+		},
+#endif
+#ifdef CONFIG_OV2722
+		{
+		I2C_BOARD_INFO("ov2722", 0x6c >> 1),
+		.platform_data = &msm_camera_sensor_ov2722_data,
+		}
+#endif
+};
+
 #endif
 #endif
 
