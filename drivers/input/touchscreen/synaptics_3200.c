@@ -277,7 +277,9 @@ static void sweep2wake_presspwr(struct work_struct * sweep2wake_presspwr_work) {
         	mutex_unlock(&pwrkeyworklock);
 
 		if (wakesleep_vib) {
+#ifndef CONFIG_MACH_DELUXE_J
 		        vibrate(vib_strength);
+#endif
 			wakesleep_vib = 0;
 		}
 		return;
@@ -361,7 +363,9 @@ static void logo2wake_longtap_count(struct work_struct * logo2wake_longtap_count
 			pocket_mode = pocket_detection_check();
 
 		if (!pocket_mode || pocket_detect == 0) {
+#ifndef CONFIG_MACH_DELUXE_J
 			vibrate(vib_strength);
+#endif
 			input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
 			input_sync(sweep2wake_pwrdev);
 			msleep(100);
