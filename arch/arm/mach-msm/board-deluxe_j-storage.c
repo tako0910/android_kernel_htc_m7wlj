@@ -554,4 +554,6 @@ void __init deluxe_j_init_mmc(void)
 		apq8064_add_sdcc(3, deluxe_j_sdc3_pdata);
 		apq8064_add_sdcc(4, &deluxe_j_wifi_data);
 	}
+	apq8064_add_uio();
+	//reg_set_l7_optimum_mode();
 }
