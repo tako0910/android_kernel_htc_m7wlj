@@ -557,7 +557,7 @@ struct platform_device msm8960_device_uart_gsbi8 = {
 	.dev.platform_data = &uart_gsbi8_pdata,
 };
 
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 static struct resource resources_uart_gsbi12[] = {
 	{
 		.start	= GSBI12_UARTDM_IRQ,
@@ -580,7 +580,11 @@ static struct resource resources_uart_gsbi12[] = {
 };
 
 struct platform_device msm8960_device_uart_gsbi12 = {
+#ifdef CONFIG_SERIAL_IRDA
 	.name	= "msm_serial_irda",
+#else
+	.name	= "msm_serial_cir",
+#endif
 	.id	= 2,
 	.num_resources	= ARRAY_SIZE(resources_uart_gsbi12),
 	.resource	= resources_uart_gsbi12,

@@ -130,7 +130,7 @@
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 #include <linux/pm_qos.h>
 #endif
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 #include <linux/htc_irda.h>
 #endif
 
@@ -4256,7 +4256,7 @@ static struct platform_device *common_devices[] __initdata = {
 static struct platform_device *cdp_devices[] __initdata = {
 	&apq8064_device_uart_gsbi1,
 	&apq8064_device_uart_gsbi2,
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 	&apq8064_device_uart_gsbi3, 
 #endif
 	&apq8064_device_uart_gsbi7,
@@ -4325,7 +4325,7 @@ static struct msm_i2c_platform_data deluxe_j_i2c_qup_gsbi3_pdata = {
 	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
 	
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 	.share_uart_flag = 1, 
 #endif
 };
@@ -4338,7 +4338,7 @@ static struct msm_i2c_platform_data deluxe_j_i2c_qup_gsbi4_pdata = {
 #endif
 };
 
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 int deluxe_irda_enable(int ebl)
 {
 	int rc = 0;
@@ -4903,7 +4903,7 @@ static void deluxe_j_init_1seg(void)
 }
 #endif
 
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 static uint32_t msm_uart_gsbi3_gpio[] = {
 	GPIO_CFG(SIR_TX, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
 	GPIO_CFG(SIR_RX, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
@@ -5013,7 +5013,7 @@ static void __init deluxe_j_common_init(void)
 			syn_ts_3k_data[rc].mfg_flag = 1;
 	}
 
-#ifdef CONFIG_SERIAL_IRDA
+#if defined(CONFIG_SERIAL_IRDA) || defined(CONFIG_SERIAL_CIR)
 	deluxe_j_irda_init();
 #endif
 
