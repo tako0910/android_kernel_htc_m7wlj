@@ -5846,7 +5846,7 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 #ifdef CONFIG_SERIAL_IRDA
 	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_irda.2"),
 #elif defined CONFIG_SERIAL_CIR
-	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_cir.2"),
+	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_cir.3"),
 #else
 	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	""),
 #endif
@@ -5912,7 +5912,7 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_irda.2"),
 #endif
 #ifdef CONFIG_SERIAL_CIR
-	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_cir.2"),
+	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_cir.3"),
 #endif
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"qup_i2c.3"),
 #ifdef CONFIG_GSBI4_UARTDM
