@@ -88,8 +88,8 @@ int get_felica_uart_status(void) {
 }
 
 void set_snfc_uart_status(int status) {
-	gsnfc_uart_status = status;
-	wake_up_interruptible(&wait_snfc_uart_release);
+//	gsnfc_uart_status = status;
+//	wake_up_interruptible(&wait_snfc_uart_release);
 }
 
 int get_snfc_uart_status(void) {
@@ -213,6 +213,7 @@ int felica_uart_open(struct inode *inode, struct file *file)
 		FELICA_LOG_INFO("[FELICA_DD] %s Done(wait_event_interruptible), ret=[%d], snfc_uart_status[%d]", __func__, ret, get_snfc_uart_status());
 	}
 
+	FELICA_LOG_INFO("FELICA_DD tako test 1");
 	FELICA_LOG_INFO("[FELICA_DD] %s get snfc_uart_status[%d]", __func__, get_snfc_uart_status());
 
 	if( gfa_open_cnt == 0 )
