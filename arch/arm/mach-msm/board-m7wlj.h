@@ -206,6 +206,7 @@ extern struct regulator_init_data m7wl_saw_regulator_pdata_8821_s1;
 struct mmc_platform_data;
 int __init apq8064_add_sdcc(unsigned int controller,
 		struct mmc_platform_data *plat);
+int __init apq8064_add_uio(void);
 
 void m7wlj_init_mmc(void);
 int m7wl_wifi_init(void);

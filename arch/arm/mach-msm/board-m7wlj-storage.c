@@ -606,4 +606,5 @@ void __init m7wlj_init_mmc(void)
 	apq8064_add_sdcc(3, &m7wl_wifi_data);
 	apq8064_add_sdcc(4, &m7wlj_sdc4_data);
 	
+	apq8064_add_uio();
 }
