@@ -11,6 +11,7 @@
  * (at your option) any later version.
  */
 
+#define fcAUTO_PERF_LOCK        1
 
 #include <linux/kernel.h>
 #include <linux/gfp.h>
@@ -37,10 +38,16 @@ struct eth_dev {
 	spinlock_t		req_lock;	
 	struct list_head	tx_reqs, rx_reqs;
 	unsigned		tx_qlen;
+#define TX_REQ_THRESHOLD	5
+	int			no_tx_req_used;
+	int			tx_skb_hold_count;
+	u32			tx_req_bufsize;
 
 	struct sk_buff_head	rx_frames;
 
 	unsigned		header_len;
+	unsigned int		ul_max_pkts_per_xfer;
+	unsigned int		dl_max_pkts_per_xfer;
 	struct sk_buff		*(*wrap)(struct gether *, struct sk_buff *skb);
 	int			(*unwrap)(struct gether *,
 						struct sk_buff *skb,
@@ -55,13 +62,21 @@ struct eth_dev {
 	bool			zlp;
 	u8			host_mac[ETH_ALEN];
 	int             miMaxMtu;
+
+#if fcAUTO_PERF_LOCK
+    bool auto_perf_lock_on;
+    struct work_struct release_perf_lock_work;
+    struct timer_list perf_timer;
+    unsigned long timer_expired;
+    struct switch_dev EthPerf_sdev;
+    struct switch_dev *pEthPerf_sdev;
+#endif
 };
 
 
 #define RX_EXTRA	20	
 
 #define DEFAULT_QLEN	2	
-#define ETH_FRAME_LEN_MAX       9000
 
 #ifdef CONFIG_USB_GADGET_DUALSPEED
 
@@ -84,6 +99,7 @@ static inline int qlen(struct usb_gadget *gadget)
 
 
 
+#ifdef DEBUG
 #undef DBG
 #undef VDBG
 #undef ERROR
@@ -112,6 +128,7 @@ static inline int qlen(struct usb_gadget *gadget)
 	xprintk(dev , KERN_ERR , fmt , ## args)
 #define INFO(dev, fmt, args...) \
 	xprintk(dev , KERN_INFO , fmt , ## args)
+#endif 
 
 static struct eth_dev *the_dev;
 
@@ -125,8 +142,8 @@ static int ueth_change_mtu(struct net_device *net, int new_mtu)
 	int     iMaxMtuSet = ETH_FRAME_LEN;
 
 	if (the_dev) {
-        if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX)
-            iMaxMtuSet = ETH_FRAME_LEN_MAX;
+        if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX - ETH_HLEN)
+            iMaxMtuSet = ETH_FRAME_LEN_MAX - ETH_HLEN;
 	}
 
 	
@@ -141,6 +158,75 @@ static int ueth_change_mtu(struct net_device *net, int new_mtu)
 
 	return status;
 }
+
+#if fcAUTO_PERF_LOCK
+
+static const char iEthPerf_name[] = "USB_PERF";
+
+static void eth_perf_send_event(struct eth_dev *sEthDev, int iNetOn)
+{
+struct eth_dev *dev = the_dev;
+
+    printk(KERN_INFO "[PERF] %s, iNetOn=%d", __func__, iNetOn);
+
+        if (dev->pEthPerf_sdev != NULL)
+            switch_set_state(&dev->EthPerf_sdev, iNetOn);
+}
+
+#define AUTO_PERF_EXPIRED	    (10000)
+
+static void auto_setup_perf_lock(bool auto_perf_lock_on)
+{
+struct eth_dev *dev = the_dev;
+
+    
+    del_timer(&dev->perf_timer);
+    if (auto_perf_lock_on) {
+        if (!dev->auto_perf_lock_on)
+        {
+            eth_perf_send_event(dev, auto_perf_lock_on);
+        }
+    } else {
+        if (dev->auto_perf_lock_on)
+        {
+            eth_perf_send_event(dev, auto_perf_lock_on);
+        }
+    }
+    dev->auto_perf_lock_on = auto_perf_lock_on;
+}
+
+static void release_perf_lock_work_func(struct work_struct *work)
+{
+    auto_setup_perf_lock(false);
+}
+
+static void auto_perf_lock_enable(int expire_time)
+{
+struct eth_dev *dev = the_dev;
+
+    if (expire_time) {
+        auto_setup_perf_lock(true);
+        dev->timer_expired = AUTO_PERF_EXPIRED * expire_time;
+        mod_timer(&dev->perf_timer,
+            jiffies + msecs_to_jiffies(dev->timer_expired));
+    }
+    else
+        auto_setup_perf_lock(false);
+}
+
+static void auto_perf_lock_disable(unsigned long data)
+{
+struct eth_dev *dev = the_dev;
+
+    schedule_work(&dev->release_perf_lock_work);
+}
+
+static void auto_perf_timeout_handler(unsigned long data)
+{
+    auto_perf_lock_disable(data);
+}
+
+#endif
 
 static void eth_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *p)
 {
@@ -195,9 +281,13 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 	size += out->maxpacket - 1;
 	size -= size % out->maxpacket;
 
+	if (dev->ul_max_pkts_per_xfer)
+		size *= dev->ul_max_pkts_per_xfer;
+
 	if (dev->port_usb->is_fixed)
 		size = max_t(size_t, size, dev->port_usb->fixed_out_len);
 
+	pr_debug("%s: size: %d", __func__, size);
 	skb = alloc_skb(size + NET_IP_ALIGN, gfp_flags);
 	if (skb == NULL) {
 		DBG(dev, "no rx skb\n");
@@ -244,6 +334,10 @@ static void rx_complete(struct usb_ep *ep, struct usb_request *req)
 				status = dev->unwrap(dev->port_usb,
 							skb,
 							&dev->rx_frames);
+				if (status == -EINVAL)
+					dev->net->stats.rx_errors++;
+				else if (status == -EOVERFLOW)
+					dev->net->stats.rx_over_errors++;
 			} else {
 				dev_kfree_skb_any(skb);
 				status = -ENOTCONN;
@@ -388,14 +482,20 @@ static void process_rx_w(struct work_struct *work)
 	struct eth_dev	*dev = container_of(work, struct eth_dev, rx_work);
 	struct sk_buff	*skb;
 	int		status = 0;
+	unsigned int uiCurMtu = 0;
 
 	if (!dev->port_usb)
 		return;
 
+	uiCurMtu = dev->net->mtu + ETH_HLEN;
+	if ((uiCurMtu <= ETH_HLEN) || (uiCurMtu > ETH_FRAME_LEN_MAX))
+	    uiCurMtu = ETH_FRAME_LEN;
+
 	while ((skb = skb_dequeue(&dev->rx_frames))) {
 		if (status < 0
 				|| ETH_HLEN > skb->len
-				|| skb->len > ETH_FRAME_LEN) {
+			
+			    || skb->len > uiCurMtu) {
 			dev->net->stats.rx_errors++;
 			dev->net->stats.rx_length_errors++;
 			DBG(dev, "rx length %d\n", skb->len);
@@ -406,6 +506,10 @@ static void process_rx_w(struct work_struct *work)
 		dev->net->stats.rx_packets++;
 		dev->net->stats.rx_bytes += skb->len;
 
+#if fcAUTO_PERF_LOCK
+        if (skb->len >= 1024)
+            auto_perf_lock_enable(1);
+#endif
 		status = netif_rx_ni(skb);
 	}
 
@@ -429,7 +533,25 @@ static void eth_work(struct work_struct *work)
 static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct sk_buff	*skb = req->context;
-	struct eth_dev	*dev = ep->driver_data;
+	struct eth_dev	*dev;
+	struct net_device *net;
+	struct usb_request *new_req;
+	struct usb_ep *in;
+	int length;
+	int retval;
+
+	if (!ep->driver_data) {
+		usb_ep_free_request(ep, req);
+		return;
+	}
+
+	dev = ep->driver_data;
+	net = dev->net;
+
+	if (!dev->port_usb) {
+		usb_ep_free_request(ep, req);
+		return;
+	}
 
 	switch (req->status) {
 	default:
@@ -440,14 +562,72 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 	case -ESHUTDOWN:		
 		break;
 	case 0:
-		dev->net->stats.tx_bytes += skb->len;
+		if (!req->zero)
+			dev->net->stats.tx_bytes += req->length-1;
+		else
+			dev->net->stats.tx_bytes += req->length;
 	}
 	dev->net->stats.tx_packets++;
 
 	spin_lock(&dev->req_lock);
-	list_add(&req->list, &dev->tx_reqs);
-	spin_unlock(&dev->req_lock);
-	dev_kfree_skb_any(skb);
+	list_add_tail(&req->list, &dev->tx_reqs);
+
+	if (dev->port_usb->multi_pkt_xfer) {
+		dev->no_tx_req_used--;
+		req->length = 0;
+		in = dev->port_usb->in_ep;
+
+		if (!list_empty(&dev->tx_reqs)) {
+			new_req = container_of(dev->tx_reqs.next,
+					struct usb_request, list);
+			list_del(&new_req->list);
+			spin_unlock(&dev->req_lock);
+			if (new_req->length > 0) {
+				length = new_req->length;
+
+				if (dev->port_usb->is_fixed &&
+						length == dev->port_usb->fixed_in_len &&
+						(length % in->maxpacket) == 0)
+					new_req->zero = 0;
+				else
+					new_req->zero = 1;
+
+				if (new_req->zero && !dev->zlp &&
+						(length % in->maxpacket) == 0) {
+					new_req->zero = 0;
+					length++;
+				}
+
+				new_req->length = length;
+				retval = usb_ep_queue(in, new_req, GFP_ATOMIC);
+				switch (retval) {
+				default:
+					INFO(dev, "tx queue err %d\n", retval);
+					new_req->length = 0;
+					spin_lock(&dev->req_lock);
+					list_add_tail(&new_req->list,
+							&dev->tx_reqs);
+					spin_unlock(&dev->req_lock);
+					break;
+				case 0:
+					spin_lock(&dev->req_lock);
+					dev->no_tx_req_used++;
+					spin_unlock(&dev->req_lock);
+					net->trans_start = jiffies;
+				}
+			} else {
+				INFO(dev, "put the unfinished request\n");
+				spin_lock(&dev->req_lock);
+				list_add_tail(&new_req->list, &dev->tx_reqs);
+				spin_unlock(&dev->req_lock);
+			}
+		} else {
+			spin_unlock(&dev->req_lock);
+		}
+	} else {
+		spin_unlock(&dev->req_lock);
+		dev_kfree_skb_any(skb);
+	}
 
 	if (netif_carrier_ok(dev->net))
 		netif_wake_queue(dev->net);
@@ -456,6 +636,38 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 static inline int is_promisc(u16 cdc_filter)
 {
 	return cdc_filter & USB_CDC_PACKET_TYPE_PROMISCUOUS;
+}
+
+static int alloc_tx_buffer(struct eth_dev *dev)
+{
+	struct list_head	*act;
+	struct usb_request	*req;
+
+	dev->tx_req_bufsize = (dev->dl_max_pkts_per_xfer *
+				(dev->net->mtu
+				+ sizeof(struct ethhdr)
+				
+				+ 44
+				+ 22));
+
+	list_for_each(act, &dev->tx_reqs) {
+		req = container_of(act, struct usb_request, list);
+		if (!req->buf)
+			req->buf = kmalloc(dev->tx_req_bufsize,
+						GFP_ATOMIC);
+			if (!req->buf)
+				goto free_buf;
+	}
+	return 0;
+
+free_buf:
+	
+	dev->tx_req_bufsize = 0;
+	list_for_each(act, &dev->tx_reqs) {
+		req = container_of(act, struct usb_request, list);
+		kfree(req->buf);
+	}
+	return -ENOMEM;
 }
 
 static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
@@ -468,6 +680,7 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	unsigned long		flags;
 	struct usb_ep		*in;
 	u16			cdc_filter;
+	bool			multi_pkt_xfer = false;
 
 	if ((!skb) || (IS_ERR(skb)))
 		return NETDEV_TX_OK;
@@ -480,6 +693,7 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	if (dev->port_usb) {
 		in = dev->port_usb->in_ep;
 		cdc_filter = dev->port_usb->cdc_filter;
+		multi_pkt_xfer = dev->port_usb->multi_pkt_xfer;
 	} else {
 		in = NULL;
 		cdc_filter = 0;
@@ -489,6 +703,13 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	if (!in) {
 		dev_kfree_skb_any(skb);
 		return NETDEV_TX_OK;
+	}
+
+	
+	if (multi_pkt_xfer && !dev->tx_req_bufsize) {
+		retval = alloc_tx_buffer(dev);
+		if (retval < 0)
+			return -ENOMEM;
 	}
 
 	
@@ -533,11 +754,39 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		spin_unlock_irqrestore(&dev->lock, flags);
 		if (!skb)
 			goto drop;
-
-		length = skb->len;
 	}
-	req->buf = skb->data;
-	req->context = skb;
+
+	spin_lock_irqsave(&dev->req_lock, flags);
+	dev->tx_skb_hold_count++;
+	spin_unlock_irqrestore(&dev->req_lock, flags);
+
+	if (multi_pkt_xfer) {
+		memcpy(req->buf + req->length, skb->data, skb->len);
+		req->length = req->length + skb->len;
+		length = req->length;
+		dev_kfree_skb_any(skb);
+
+		spin_lock_irqsave(&dev->req_lock, flags);
+		if (dev->tx_skb_hold_count < dev->dl_max_pkts_per_xfer) {
+			if (dev->no_tx_req_used > TX_REQ_THRESHOLD) {
+				list_add(&req->list, &dev->tx_reqs);
+				spin_unlock_irqrestore(&dev->req_lock, flags);
+				goto success;
+			}
+		}
+
+		dev->no_tx_req_used++;
+		spin_unlock_irqrestore(&dev->req_lock, flags);
+
+		spin_lock_irqsave(&dev->lock, flags);
+		dev->tx_skb_hold_count = 0;
+		spin_unlock_irqrestore(&dev->lock, flags);
+	} else {
+		length = skb->len;
+		req->buf = skb->data;
+		req->context = skb;
+	}
+
 	req->complete = tx_complete;
 
 	
@@ -548,16 +797,18 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	else
 		req->zero = 1;
 
-	if (req->zero && !dev->zlp && (length % in->maxpacket) == 0)
+	if (req->zero && !dev->zlp && (length % in->maxpacket) == 0) {
+		req->zero = 0;
 		length++;
+	}
 
 	req->length = length;
 
 	
 	if (gadget_is_dualspeed(dev->gadget) &&
-			 (dev->gadget->speed == USB_SPEED_HIGH)) {
+			(dev->gadget->speed == USB_SPEED_HIGH)) {
 		dev->tx_qlen++;
-		if (dev->tx_qlen == qmult) {
+		if (dev->tx_qlen == (qmult/2)) {
 			req->no_interrupt = 0;
 			dev->tx_qlen = 0;
 		} else {
@@ -576,8 +827,16 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		net->trans_start = jiffies;
 	}
 
+#if fcAUTO_PERF_LOCK
+    if (skb->len >= 1024)
+        auto_perf_lock_enable(1);
+#endif
+
 	if (retval) {
-		dev_kfree_skb_any(skb);
+		if (!multi_pkt_xfer)
+			dev_kfree_skb_any(skb);
+		else
+			req->length = 0;
 drop:
 		dev->net->stats.tx_dropped++;
 		spin_lock_irqsave(&dev->req_lock, flags);
@@ -586,6 +845,7 @@ drop:
 		list_add(&req->list, &dev->tx_reqs);
 		spin_unlock_irqrestore(&dev->req_lock, flags);
 	}
+success:
 	return NETDEV_TX_OK;
 }
 
@@ -624,6 +884,10 @@ static int eth_stop(struct net_device *net)
 {
 	struct eth_dev	*dev = netdev_priv(net);
 	unsigned long	flags;
+
+#if fcAUTO_PERF_LOCK
+	auto_setup_perf_lock(false);
+#endif
 
 	VDBG(dev, "%s\n", __func__);
 	netif_stop_queue(net);
@@ -728,8 +992,8 @@ int gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 		memcpy(ethaddr, the_dev->host_mac, ETH_ALEN);
         if (g) {
             the_dev->miMaxMtu = g->miMaxMtu;
-            if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX)
-                the_dev->net->mtu = ETH_FRAME_LEN_MAX;
+            if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX - ETH_HLEN)
+                the_dev->net->mtu = ETH_FRAME_LEN_MAX - ETH_HLEN;
         }
 		return 0;
 	}
@@ -766,6 +1030,8 @@ int gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 
 	SET_ETHTOOL_OPS(net, &ops);
 
+	netif_carrier_off(net);
+
 	dev->gadget = g;
 	SET_NETDEV_DEV(net, &g->dev);
 	SET_NETDEV_DEVTYPE(net, &gadget_type);
@@ -781,19 +1047,42 @@ int gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 		the_dev = dev;
         if (g) {
             the_dev->miMaxMtu = g->miMaxMtu;
-            if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX)
-                the_dev->net->mtu = ETH_FRAME_LEN_MAX;
+            if (the_dev->miMaxMtu == ETH_FRAME_LEN_MAX - ETH_HLEN)
+                the_dev->net->mtu = ETH_FRAME_LEN_MAX - ETH_HLEN;
         }
 		netif_carrier_off(net);
 	}
+
+#if fcAUTO_PERF_LOCK
+    INIT_WORK(&dev->release_perf_lock_work, release_perf_lock_work_func);
+    setup_timer(&dev->perf_timer, auto_perf_timeout_handler, (unsigned long) dev);
+
+    dev->pEthPerf_sdev = NULL;
+    dev->EthPerf_sdev.name = iEthPerf_name;
+    status = switch_dev_register(&dev->EthPerf_sdev);
+    if (status < 0) {
+        printk(KERN_ERR "USB EthPerf_sdev switch_dev_register register fail\n");
+    }
+    dev->pEthPerf_sdev = &dev->EthPerf_sdev;
+#endif
 
 	return status;
 }
 
 void gether_cleanup(void)
 {
+#if fcAUTO_PERF_LOCK
+struct eth_dev *dev = the_dev;
+#endif
+
 	if (!the_dev)
 		return;
+
+#if fcAUTO_PERF_LOCK
+    del_timer(&dev->perf_timer);
+    switch_dev_unregister(&dev->EthPerf_sdev);
+    dev->pEthPerf_sdev = NULL;
+#endif
 
 	unregister_netdev(the_dev->net);
 	flush_work_sync(&the_dev->work);
@@ -802,6 +1091,12 @@ void gether_cleanup(void)
 	the_dev = NULL;
 }
 
+int gether_change_mtu(int new_mtu)
+{
+struct eth_dev *dev = the_dev;
+
+    return ueth_change_mtu(dev->net, new_mtu);
+}
 
 /**
  * gether_connect - notify network layer that USB link is active
@@ -853,8 +1148,13 @@ struct net_device *gether_connect(struct gether *link)
 		dev->header_len = link->header_len;
 		dev->unwrap = link->unwrap;
 		dev->wrap = link->wrap;
+		dev->ul_max_pkts_per_xfer = link->ul_max_pkts_per_xfer;
+		dev->dl_max_pkts_per_xfer = link->dl_max_pkts_per_xfer;
 
 		spin_lock(&dev->lock);
+		dev->tx_skb_hold_count = 0;
+		dev->no_tx_req_used = 0;
+		dev->tx_req_bufsize = 0;
 		dev->port_usb = link;
 		link->ioport = dev;
 		if (netif_running(dev->net)) {
@@ -905,6 +1205,8 @@ void gether_disconnect(struct gether *link)
 		list_del(&req->list);
 
 		spin_unlock(&dev->req_lock);
+		if (link->multi_pkt_xfer)
+			kfree(req->buf);
 		usb_ep_free_request(link->in_ep, req);
 		spin_lock(&dev->req_lock);
 	}

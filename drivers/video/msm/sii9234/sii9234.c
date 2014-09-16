@@ -106,6 +106,9 @@ static bool sii9244_interruptable = false;
 static bool need_simulate_cable_out = false;
 #ifdef CONFIG_INTERNAL_CHARGING_SUPPORT
 static bool g_bPollDetect = false;
+#ifdef CONFIG_ARCH_MSM8X60
+int htc_batt_turn_off_mhl_dongle_5v(void);
+#endif
 #endif
 static bool g_bLowPowerModeOn = false;
 
@@ -164,8 +167,13 @@ void check_mhl_5v_status(void)
 	if (!pInfo)
 		return;
 	if(pInfo->isMHL && (pInfo->statMHL == CONNECT_TYPE_MHL_AC || pInfo->statMHL == CONNECT_TYPE_USB )){
+#ifdef CONFIG_ARCH_MSM8X60
+	htc_batt_turn_off_mhl_dongle_5v();
+#else
+
 		if(pInfo->enable_5v)
 			pInfo->enable_5v(0);
+#endif
 	}
 }
 #endif
@@ -341,20 +349,19 @@ static void sii9234_irq_do_work(struct work_struct *work)
 	T_MHL_SII9234_INFO *pInfo = sii9234_info_ptr;
 	if (!pInfo)
 		return;
+
 	mutex_lock(&mhl_early_suspend_sem);
-	if (!g_bEnterEarlySuspend) {
+	if(time_after(jiffies, irq_jiffies + HZ/20))
+	{
 		uint8_t		event;
 		uint8_t		eventParameter;
-		if(time_after(jiffies, irq_jiffies + HZ/20))
-		{
-			irq_jiffies = jiffies;
-			
-			need_simulate_cable_out = false;
-			if(!dbg_con_test_on)
-				cancel_delayed_work(&pInfo->irq_timeout_work);
-			SiiMhlTxGetEvents(&event, &eventParameter);
-			ProcessRcp(event, eventParameter);
-		}
+		irq_jiffies = jiffies;
+		
+		need_simulate_cable_out = false;
+		if(!dbg_con_test_on)
+			cancel_delayed_work(&pInfo->irq_timeout_work);
+		SiiMhlTxGetEvents(&event, &eventParameter);
+		ProcessRcp(event, eventParameter);
 	}
 	mutex_unlock(&mhl_early_suspend_sem);
 
@@ -545,6 +552,7 @@ static void init_delay_handler(struct work_struct *w)
 {
 	PR_DISP_INFO("init_delay_handler()\n");
 
+	TPI_Init();
 	update_mhl_status(false, CONNECT_TYPE_UNKNOWN);
 }
 
@@ -652,7 +660,6 @@ static void sii9234_early_suspend(struct early_suspend *h)
 		
 		if (cable_get_accessory_type() != DOCK_STATE_MHL )
 			disable_interswitch = true;
-		TPI_Init();
 		if (!g_bLowPowerModeOn) {
 			g_bLowPowerModeOn = true;
 			if (pInfo->mhl_lpm_power)
@@ -682,8 +689,12 @@ static void mhl_turn_off_5v(struct work_struct *w)
 	T_MHL_SII9234_INFO *pInfo = sii9234_info_ptr;
 	if (!pInfo)
 		return;
+#ifdef CONFIG_ARCH_MSM8X60
+        htc_batt_turn_off_mhl_dongle_5v();
+#else
 	if(pInfo->enable_5v)
 		pInfo->enable_5v(0);
+#endif
 }
 static void mhl_on_delay_handler(struct work_struct *w)
 {

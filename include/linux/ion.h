@@ -98,7 +98,11 @@ enum cp_mem_usage {
 
 #define ION_IS_CACHED(__flags)	((__flags) & (1 << ION_CACHE_SHIFT))
 
+#ifdef CONFIG_ARCH_MSM8930
+#define ION_IOMMU_UNMAP_DELAYED 0
+#else
 #define ION_IOMMU_UNMAP_DELAYED 1
+#endif
 
 #ifdef __KERNEL__
 #include <linux/err.h>
@@ -367,6 +371,15 @@ struct ion_allocation_data {
 	struct ion_handle *handle;
 };
 
+struct ion_allocation_data_new {
+	size_t len;
+	size_t align;
+	unsigned int heap_mask;
+	unsigned int flags;
+	struct ion_handle *handle;
+};
+
+
 struct ion_fd_data {
 	struct ion_handle *handle;
 	int fd;
@@ -395,10 +408,19 @@ struct ion_flag_data {
 	unsigned long flags;
 };
 
+#define ION_CLIENT_NAME_LENGTH 64
+struct ion_client_name_data {
+	int len;
+	char* name;
+};
+
 #define ION_IOC_MAGIC		'I'
 
 #define ION_IOC_ALLOC		_IOWR(ION_IOC_MAGIC, 0, \
 				      struct ion_allocation_data)
+
+#define ION_IOC_ALLOC_NEW	_IOWR(ION_IOC_MAGIC, 0, \
+				      struct ion_allocation_data_new)
 
 #define ION_IOC_FREE		_IOWR(ION_IOC_MAGIC, 1, struct ion_handle_data)
 
@@ -419,6 +441,9 @@ struct ion_flag_data {
 
 #define ION_IOC_GET_FLAGS_OLD		_IOWR(ION_IOC_MAGIC, 10, \
 						struct ion_flag_data)
+
+#define ION_IOC_CLIENT_RENAME		_IOWR(ION_IOC_MAGIC, 12, \
+						struct ion_client_name_data)
 
 #define ION_IOC_MSM_MAGIC 'M'
 

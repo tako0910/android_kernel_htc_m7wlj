@@ -63,7 +63,7 @@ int __init m7wl_init_wifi_mem(void)
 		if (i < (WLAN_SKB_BUF_NUM/2))
 			wlan_static_skb[i] = dev_alloc_skb(PAGE_SIZE*2);
 		else
-			wlan_static_skb[i] = dev_alloc_skb(PAGE_SIZE*4);
+			wlan_static_skb[i] = dev_alloc_skb(PAGE_SIZE*16);
 	}
 	for (i = 0; (i < PREALLOC_WLAN_NUMBER_OF_SECTIONS); i++) {
 		wifi_mem_array[i].mem_ptr = kmalloc(wifi_mem_array[i].size,

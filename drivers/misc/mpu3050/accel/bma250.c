@@ -308,12 +308,11 @@
 static void *g_mlsl_handle;
 static struct ext_slave_platform_data *g_pdata;
 int cir_flag = 0;
-int power_key_pressed = 0;
+static int power_key_pressed = 0;
 static int (*gsensor_power_LPM)(int on) = NULL;
 
 
 EXPORT_SYMBOL(cir_flag);
-EXPORT_SYMBOL(power_key_pressed);
 #endif
 
 struct bma250_config {
@@ -337,7 +336,7 @@ static int bma250_set_slope_threshold(void *mlsl_handle, struct ext_slave_platfo
 		unsigned char threshold)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = MLSLSerialRead(mlsl_handle, pdata->address,
 		BMA250_SLOPE_THRES__REG, 1, &data);
@@ -354,7 +353,7 @@ static int bma250_set_slope_duration(void *mlsl_handle, struct ext_slave_platfor
 		duration)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = MLSLSerialRead(mlsl_handle, pdata->address,
 		BMA250_SLOPE_DUR__REG, 1, &data);
@@ -369,7 +368,7 @@ static int bma250_set_slope_duration(void *mlsl_handle, struct ext_slave_platfor
 static int bma250_set_mode(void *mlsl_handle, struct ext_slave_platform_data *pdata, unsigned char Mode)
 {
 	int comres = 0;
-	unsigned char data1;
+	unsigned char data1 = 0;
 
 
 	if (Mode < 3) {
@@ -470,7 +469,7 @@ static int bma250_set_int1_pad_sel(void *mlsl_handle, struct ext_slave_platform_
 static int bma250_set_Int_Mode(void *mlsl_handle, struct ext_slave_platform_data *pdata, unsigned char mode)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 
 	comres = MLSLSerialRead(mlsl_handle, pdata->address, BMA250_INT_MODE_SEL__REG, 1,
@@ -896,10 +895,6 @@ static int bma250_resume(void *mlsl_handle,
 
 	
 
-#ifdef CONFIG_CIR_ALWAYS_READY
-	
-	power_key_pressed = 0;
-#endif
 	if (!private_data->resume.power_mode) {
 		result = MLSLSerialWriteSingle(mlsl_handle, pdata->address,
 			BOSCH_PWR_REG, 0x80);
@@ -981,8 +976,33 @@ static ssize_t bma250_enable_interrupt(struct device *dev,
 	}
 	return count;
 }
+static ssize_t bma250_clear_powerkey_pressed(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long powerkey_pressed;
+	int error;
+	error = strict_strtoul(buf, 10, &powerkey_pressed);
+	if (error)
+	    return error;
+
+	if(powerkey_pressed == 1) {
+	    power_key_pressed = 1;
+	}
+	else if(powerkey_pressed == 0) {
+	    power_key_pressed = 0;
+	}
+	return count;
+}
+static ssize_t bma250_get_powerkry_pressed(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", power_key_pressed);
+}
 static DEVICE_ATTR(enable, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
 		NULL, bma250_enable_interrupt);
+static DEVICE_ATTR(clear_powerkey_flag, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
+		bma250_get_powerkry_pressed, bma250_clear_powerkey_pressed);
 #endif
 static int bma250_init(void *mlsl_handle,
 			  struct ext_slave_descr *slave,
@@ -1001,6 +1021,8 @@ static int bma250_init(void *mlsl_handle,
 #ifdef CONFIG_CIR_ALWAYS_READY
 	struct class *bma250_class = NULL;
 	struct device *bma250_dev = NULL;
+	struct class *bma250_powerkey_class = NULL;
+	struct device *bma250_powerkey_dev = NULL;
 	int res;
 #endif
 	struct bma250_private_data *private_data;
@@ -1020,7 +1042,6 @@ static int bma250_init(void *mlsl_handle,
 	g_mlsl_handle = mlsl_handle;
 
 	bma250_class = class_create(THIS_MODULE, "bma250");
-
 	if (IS_ERR(bma250_class)) {
 		res = PTR_ERR(bma250_class);
 		bma250_class = NULL;
@@ -1028,19 +1049,40 @@ static int bma250_init(void *mlsl_handle,
 		goto err_create_bma250_class_failed;
 	}
 
+	bma250_powerkey_class = class_create(THIS_MODULE, "bma250_powerkey");
+	if (IS_ERR(bma250_powerkey_class)) {
+		res = PTR_ERR(bma250_powerkey_class);
+		bma250_powerkey_class = NULL;
+		E("%s, create bma250_class fail!\n", __func__);
+		goto err_create_bma250_powerkey_class_failed;
+	}
+
 	bma250_dev = device_create(bma250_class,
 				NULL, 0, "%s", "bma250");
-
 	if (unlikely(IS_ERR(bma250_dev))) {
 		res = PTR_ERR(bma250_dev);
 		bma250_dev = NULL;
 		E("%s, create bma250_dev fail!\n", __func__);
 		goto err_create_bma250_device;
 	}
+
+	bma250_powerkey_dev = device_create(bma250_powerkey_class,
+				NULL, 0, "%s", "bma250");
+	if (unlikely(IS_ERR(bma250_powerkey_dev))) {
+		res = PTR_ERR(bma250_powerkey_dev);
+		bma250_powerkey_dev = NULL;
+		E("%s, create bma250_dev fail!\n", __func__);
+		goto err_create_bma250_powerkey_device;
+	}
 	res = device_create_file(bma250_dev, &dev_attr_enable);
 	if (res) {
 		E("%s, create bma250_device_create_file fail!\n", __func__);
 		goto err_create_bma250_device_file;
+	}
+	res = device_create_file(bma250_powerkey_dev, &dev_attr_clear_powerkey_flag);
+	if (res) {
+		E("%s, create bma250_device_create_file fail!\n", __func__);
+		goto err_create_bma250_powerkey_device_file;
 	}
 
 #endif
@@ -1095,13 +1137,26 @@ static int bma250_init(void *mlsl_handle,
 	ERROR_CHECK(result);
 
 	return result;
+
 #ifdef CONFIG_CIR_ALWAYS_READY
-err_create_bma250_device_file:
+
+err_create_bma250_powerkey_device_file:
 	device_remove_file(bma250_dev, &dev_attr_enable);
+err_create_bma250_device_file:
+	if (bma250_powerkey_dev)
+		device_unregister(bma250_powerkey_dev);
+err_create_bma250_powerkey_device:
+	if (bma250_dev)
+		device_unregister(bma250_dev);
 err_create_bma250_device:
-	device_unregister(bma250_dev);
+	if (bma250_powerkey_class)
+		class_destroy(bma250_powerkey_class);
+err_create_bma250_powerkey_class_failed:
+	if (bma250_class)
+		class_destroy(bma250_class);
 err_create_bma250_class_failed:
-	class_destroy(bma250_class);
+	if (private_data)
+		MLOSFree(private_data);
 	return result;
 #endif
 }

@@ -42,6 +42,10 @@ struct gether {
 	bool				is_fixed;
 	u32				fixed_out_len;
 	u32				fixed_in_len;
+
+	unsigned			ul_max_pkts_per_xfer;
+	unsigned			dl_max_pkts_per_xfer;
+	bool				multi_pkt_xfer;
 	struct sk_buff			*(*wrap)(struct gether *port,
 						struct sk_buff *skb);
 	int				(*unwrap)(struct gether *port,
@@ -63,6 +67,7 @@ int gether_setup(struct usb_gadget *g, u8 ethaddr[ETH_ALEN]);
 void gether_cleanup(void);
 int gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 		const char *netname);
+int gether_change_mtu(int new_mtu);
 
 struct net_device *gether_connect(struct gether *);
 void gether_disconnect(struct gether *);

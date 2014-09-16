@@ -33,6 +33,9 @@
 
 #include "internal.h"
 
+#ifdef CONFIG_HTC_FD_MONITOR
+extern int in_fd_list(const int fd, const int mid);
+#endif
 int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 	struct file *filp)
 {
@@ -856,6 +859,25 @@ struct file *file_open_root(struct dentry *dentry, struct vfsmount *mnt,
 }
 EXPORT_SYMBOL(file_open_root);
 
+extern int get_prealloc_size(void);
+extern int get_logfile_prealloc_size(void);
+static int pre_allocate(struct file *f)
+{
+	int prealloc_size;
+	if (!f->f_op->fallocate || !(f->f_mode & FMODE_WRITE))
+		return 0;
+
+	if (f->f_path.dentry->d_parent &&
+			!strcmp(f->f_path.dentry->d_parent->d_name.name, "htclog"))
+		prealloc_size = get_logfile_prealloc_size();
+	else
+		prealloc_size = get_prealloc_size();
+
+	if (prealloc_size)
+		do_fallocate(f, FALLOC_FL_KEEP_SIZE, 0, prealloc_size);
+	return 0;
+}
+
 long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 {
 	struct open_flags op;
@@ -873,6 +895,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 			} else {
 				fsnotify_open(f);
 				fd_install(fd, f);
+				pre_allocate(f);
 			}
 		}
 		putname(tmp);
@@ -945,7 +968,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 	struct files_struct *files = current->files;
 	struct fdtable *fdt;
 	int retval;
-
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
 	if (fd >= fdt->max_fds)
@@ -953,6 +975,15 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 	filp = fdt->fd[fd];
 	if (!filp)
 		goto out_unlock;
+#ifdef CONFIG_HTC_FD_MONITOR
+	if (in_fd_list(fd, 0) == 1) {
+		printk("fd error: %s(%d) tries to close fd=%d illegally\n", current->comm, current->pid, fd);
+		force_sig(SIGABRT, current);
+		spin_unlock(&files->file_lock);
+		force_sig(SIGABRT, current);
+		return 0xBADFD;
+	}
+#endif
 	rcu_assign_pointer(fdt->fd[fd], NULL);
 	__clear_close_on_exec(fd, fdt);
 	__put_unused_fd(files, fd);

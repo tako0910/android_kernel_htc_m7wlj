@@ -20,8 +20,7 @@
 
 #include <linux/types.h>
 #include <linux/device.h>
-#include <linux/msm_mdp.h>
-#include <mach/msm_fb.h>
+#include <linux/minifb.h>
 #include <linux/switch.h>
 #include <linux/workqueue.h>
 #include <linux/kthread.h>
@@ -77,10 +76,11 @@ unsigned short *test_frame;
 #define htc_mode_info(fmt, args...) \
 	printk(KERN_INFO "[htc_mode] " pr_fmt(fmt), ## args)
 
-static int keypad_code[] = {KEY_WAKEUP, 0, 0, 0, KEY_HOME, KEY_MENU, KEY_BACK};
+static int keypad_code[] = {KEY_WAKEUP, 0, 0, 0, KEY_HOME, 0, KEY_BACK};
 static const char cand_shortname[] = "htc_cand";
 static const char htcmode_shortname[] = "htcmode";
 static ktime_t start;
+extern int htc_battery_set_max_input_current(int target_ma);
 
 struct projector_dev {
 	struct usb_function function;
@@ -427,8 +427,6 @@ static void projector_report_key_event(struct projector_dev *dev,
 	input_sync(kdev);
 }
 
-extern char *get_fb_addr(void);
-
 static void send_fb(struct projector_dev *dev)
 {
 
@@ -436,11 +434,16 @@ static void send_fb(struct projector_dev *dev)
 	int xfer;
 	int count = dev->framesize;
 	char *frame = NULL;
+	unsigned long frameSize = 0;
 
-	if (projector_dev->htcmode_proto->debug_mode)
+	if (projector_dev->htcmode_proto->debug_mode) {
 		frame = (char *)test_frame;
-	else
-		frame = get_fb_addr();
+	} else {
+		if (minifb_lockbuf((void**)&frame, &frameSize, MINIFB_REPEAT) < 0) {
+			pr_warn("%s: no frame\n", __func__);
+			return;
+		}
+	}
 
 	if (frame == NULL) {
 		printk(KERN_WARNING "send_fb: frame == NULL\n");
@@ -469,6 +472,9 @@ static void send_fb(struct projector_dev *dev)
 			break;
 		}
 	}
+
+	if (!projector_dev->htcmode_proto->debug_mode)
+		minifb_unlockbuf();
 }
 
 static void send_server_info(struct projector_dev *dev);
@@ -530,14 +536,17 @@ static void send_fb2(struct projector_dev *dev)
 	struct usb_request *req;
 	int xfer;
 	static char *frame,*pre_frame;
+	unsigned long frameSize;
 	int count = dev->htcmode_proto->server_info.width *
 				dev->htcmode_proto->server_info.height * (BITSPIXEL / 8);
 	ktime_t diff;
 
-	if (projector_dev->htcmode_proto->debug_mode)
+	if (projector_dev->htcmode_proto->debug_mode) {
 		frame = (char *)test_frame;
-	else
-		frame = get_fb_addr();
+	} else {
+		if (minifb_lockbuf((void**)&frame, &frameSize, MINIFB_REPEAT) < 0)
+			return;
+	}
 
 	if (frame == NULL)
 		return;
@@ -545,7 +554,7 @@ static void send_fb2(struct projector_dev *dev)
 	if (frame == pre_frame) {
 		diff = ktime_sub(ktime_get(), start);
 		if (ktime_to_ms(diff) < FRAME_INTERVAL_TIME)
-			return;
+			goto unlock;
 		else
 			start = ktime_get();
 	}
@@ -553,7 +562,7 @@ static void send_fb2(struct projector_dev *dev)
 	if (dev->htcmode_proto->version >= 0x0006 &&
 		send_hsml_header(dev) < 0) {
 			printk(KERN_WARNING "%s: failed to send hsml header\n", __func__);
-			return;
+			goto unlock;
 	}
 
 	pre_frame = frame;
@@ -590,6 +599,10 @@ static void send_fb2(struct projector_dev *dev)
 			break;
 		}
 	}
+
+unlock:
+	if (!projector_dev->htcmode_proto->debug_mode)
+		minifb_unlockbuf();
 }
 
 void send_fb_do_work(struct work_struct *work)
@@ -1090,14 +1103,12 @@ static int projector_keypad_init(struct projector_dev *dev)
 	set_bit(KEY_VOLUMEDOWN, kdev->keybit);
 	set_bit(KEY_VOLUMEUP, kdev->keybit);
 	set_bit(KEY_HOME, kdev->keybit);
-	set_bit(KEY_MENU, kdev->keybit);
 	set_bit(KEY_BACK, kdev->keybit);
 	set_bit(KEY_SEARCH, kdev->keybit);
 	set_bit(KEY_ENTER, kdev->keybit);
 	set_bit(KEY_DELETE, kdev->keybit);
 	set_bit(KEY_ZOOMIN, kdev->keybit);
 	set_bit(KEY_ZOOMOUT, kdev->keybit);
-	set_bit(KEY_APP_SWITCH, kdev->keybit);
 
 	set_bit(KEY_WAKEUP, kdev->keybit);
 
@@ -1535,6 +1546,10 @@ static int projector_ctrlrequest(struct usb_composite_dev *cdev,
 							projector_dev->htcmode_proto->server_sig, w_length);
 					value = w_length;
 				}
+				break;
+			case HSML_06_REQ_SET_MAX_CHARGING_CURRENT:
+				htc_battery_set_max_input_current((int)w_value);
+				value = 0;
 				break;
 
 			default:

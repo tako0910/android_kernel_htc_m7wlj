@@ -1080,10 +1080,24 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 		}
 		break;
 	}
+	case VCD_I_ENABLE_VUI_BITSTREAM_RESTRICT_FLAG:
+	{
+		struct vcd_property_bitstream_restrict_enable *restrict_enable =
+			(struct vcd_property_bitstream_restrict_enable *)
+				property_value;
+		if (sizeof(struct vcd_property_bitstream_restrict_enable) ==
+			property_hdr->sz &&
+			encoder->codec.codec == VCD_CODEC_H264) {
+			encoder->bitstream_restrict_enable =
+			restrict_enable->bitstream_restrict_enable_flag;
+			vcd_status = VCD_S_SUCCESS;
+		}
+		break;
+	}
 	default:
 		DDL_MSG_ERROR("INVALID ID %d\n", (int)property_hdr->prop_id);
 		vcd_status = VCD_ERR_ILLEGAL_OP;
-	break;
+		break;
 	}
 	return vcd_status;
 }
@@ -1351,12 +1365,21 @@ static u32 ddl_get_enc_property(struct ddl_client_context *ddl,
 			property_hdr->sz &&
 			encoder->seq_header_length <=
 			seq_hdr->sequence_header_len) {
-			memcpy(seq_hdr->sequence_header,
-				encoder->seq_header.align_virtual_addr,
-				encoder->seq_header_length);
-			seq_hdr->sequence_header_len =
-				encoder->seq_header_length;
-			vcd_status = VCD_S_SUCCESS;
+			if (!encoder->seq_header.align_virtual_addr ||
+				encoder->seq_header_length & 0x80000000) {
+				DDL_MSG_ERROR("NULL addr (%p) or negative length (%d)",
+					encoder->seq_header.align_virtual_addr,
+					encoder->seq_header_length);
+				seq_hdr->sequence_header_len = 0;
+				vcd_status = VCD_ERR_NO_SEQ_HDR;
+			} else {
+				memcpy(seq_hdr->sequence_header,
+					encoder->seq_header.align_virtual_addr,
+					encoder->seq_header_length);
+				seq_hdr->sequence_header_len =
+					encoder->seq_header_length;
+				vcd_status = VCD_S_SUCCESS;
+			}
 		}
 	}
 	break;
@@ -1581,6 +1604,15 @@ static u32 ddl_get_enc_property(struct ddl_client_context *ddl,
 			vcd_status = VCD_S_SUCCESS;
 		}
 		break;
+	case VCD_I_ENABLE_VUI_BITSTREAM_RESTRICT_FLAG:
+		if (sizeof(struct vcd_property_bitstream_restrict_enable) ==
+			property_hdr->sz) {
+			((struct vcd_property_bitstream_restrict_enable *)
+				property_value)->bitstream_restrict_enable_flag
+					= encoder->bitstream_restrict_enable;
+			vcd_status = VCD_S_SUCCESS;
+		}
+	break;
 	default:
 		vcd_status = VCD_ERR_ILLEGAL_OP;
 		break;

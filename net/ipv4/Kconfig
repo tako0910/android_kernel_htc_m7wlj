@@ -631,11 +631,6 @@ config TCP_MD5SIG
 
 	  If unsure, say N.
 
-config HTC_NETWORK_MODIFY
-    tristate "HTC_NETWORK_MODIFY"
-	---help---
-	HTC_NETWORK_MODIFY
-
 config HTC_NETWORK_DEBUG
 	tristate "HTC_NETWORK_DEBUG"
 	default n
@@ -648,3 +643,9 @@ config HTC_MONITOR
 	---help---
 	  Come up with a way to add information of data usage in attribute file
 	  for identifying the process that requested for data transmission.
+
+config HTC_NETWORK_CNE
+    tristate "HTC_NETWORK_CNE"
+    default n
+    ---help---
+    HTC_NETWORK_CNE

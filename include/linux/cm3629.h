@@ -157,6 +157,7 @@ struct cm3629_platform_data {
 	int model;
 	int intr;
 	uint16_t levels[10];
+	uint16_t correction[10];
 	uint16_t golden_adc;
 	int (*power)(int, uint8_t); 
 	int (*lpm_power)(uint8_t); 
@@ -171,7 +172,6 @@ struct cm3629_platform_data {
 	uint8_t *mapping_table;
 	uint8_t mapping_size;
 	uint8_t ps_base_index;
-
 	uint8_t ps_calibration_rule;
 	uint8_t ps_conf1_val;
 	uint8_t ps_conf3_val;
@@ -180,6 +180,7 @@ struct cm3629_platform_data {
 	uint8_t ps1_thd_with_cal;
 	uint8_t ps2_thd_no_cal;
 	uint8_t ps2_thd_with_cal;
+	uint8_t ps_th_add;
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;

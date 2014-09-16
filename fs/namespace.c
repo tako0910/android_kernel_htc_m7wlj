@@ -942,6 +942,10 @@ static int do_umount(struct mount *mnt, int flags)
 	br_write_unlock(vfsmount_lock);
 	up_write(&namespace_sem);
 	release_mounts(&umount_list);
+
+	printk(KERN_INFO "pid:%d(%s)(parent:%d/%s)  (%s) umounted filesystem.\n",
+			current->pid, current->comm, current->parent->pid,
+			current->parent->comm, sb->s_id);
 	return retval;
 }
 
@@ -982,6 +986,41 @@ out:
 	return retval;
 }
 
+int umount2(char *name, int flags)
+{
+	struct path path;
+	struct mount *mnt;
+	int retval;
+	int lookup_flags = 0;
+
+	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
+		return -EINVAL;
+
+	if (!(flags & UMOUNT_NOFOLLOW))
+		lookup_flags |= LOOKUP_FOLLOW;
+
+	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
+	if (retval)
+		goto out;
+	mnt = real_mount(path.mnt);
+	retval = -EINVAL;
+	if (path.dentry != path.mnt->mnt_root)
+		goto dput_and_out;
+	if (!check_mnt(mnt))
+		goto dput_and_out;
+#if 0
+	retval = -EPERM;
+	if (!capable(CAP_SYS_ADMIN))
+		goto dput_and_out;
+#endif
+	retval = do_umount(mnt, flags);
+dput_and_out:
+	
+	dput(path.dentry);
+	mntput_no_expire(mnt);
+out:
+	return retval;
+}
 #ifdef __ARCH_WANT_SYS_OLDUMOUNT
 
 SYSCALL_DEFINE1(oldumount, char __user *, name)
@@ -1533,6 +1572,11 @@ static int do_new_mount(struct path *path, char *type, int flags,
 	err = do_add_mount(real_mount(mnt), path, mnt_flags);
 	if (err)
 		mntput(mnt);
+
+	
+	if (!err && ((!strcmp(type, "ext4") && !strcmp(path->dentry->d_name.name, "data"))
+		|| (!strcmp(type, "fuse") && !strcmp(path->dentry->d_name.name, "emulated"))))
+		mnt->mnt_sb->fsync_flags |= FLAG_ASYNC_FSYNC;
 	return err;
 }
 
@@ -2116,7 +2160,9 @@ static void __init init_mount_tree(void)
 	set_fs_pwd(current->fs, &root);
 	set_fs_root(current->fs, &root);
 }
-
+#ifdef CONFIG_HTC_FD_MONITOR
+void create_fd_list_entry(struct kobject *kobj);
+#endif
 void __init mnt_init(void)
 {
 	unsigned u;
@@ -2146,6 +2192,10 @@ void __init mnt_init(void)
 	fs_kobj = kobject_create_and_add("fs", NULL);
 	if (!fs_kobj)
 		printk(KERN_WARNING "%s: kobj create error\n", __func__);
+#ifdef CONFIG_HTC_FD_MONITOR
+	else
+		create_fd_list_entry(fs_kobj);
+#endif
 	init_rootfs();
 	init_mount_tree();
 }

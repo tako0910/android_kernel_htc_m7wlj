@@ -81,6 +81,9 @@
 #define YUSHANII_SET_HDR_FACTOR \
        _IOR(YUSHANII_IOCTL_MAGIC, 14, uint8_t *)
 
+#define YUSHANII_SET_DEFCOR_LEVEL \
+       _IOR(YUSHANII_IOCTL_MAGIC, 15, uint8_t *)
+
 #define SPI_COMMS_READY  				0x00000001
 #define IDLE_COMPLETE  					0x00000002
 #define ISP_STREAMING  					0x00000004
@@ -89,6 +92,7 @@
 #define END_OF_FRAME  					0x00000040
 #define LONGEXP_GLACE_STATS_READY 	0x00000100
 #define LONGEXP_HISTOGRAM_STATS_READY  0x00000200
+#define START_OF_SHORTFRAME 			0x00000800	
 #define SHORTEXP_GLACE_STATS_READY  	0x00010000
 #define SHORTEXP_HISTOGRAM_STATS_READY  0x00020000
 #define ITPOINT_LONG  					0x00200000
@@ -217,5 +221,13 @@ typedef enum{
 struct yushanii_hdr_merge_mode{
 	HDRMergeMode Mode;
 };
+
+typedef enum{
+	DEFCOR_LEVEL_INVALID = -1,
+	DEFCOR_LEVEL_0 = 0,
+	DEFCOR_LEVEL_1 = 1,
+	DEFCOR_LEVEL_2 = 2
+} defcor_level_t;
+
 #endif 
 

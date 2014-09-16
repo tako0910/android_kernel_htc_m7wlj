@@ -61,6 +61,13 @@ config AR0260
 	---help---
 	  Support for AR0260 sensor driver.
 
+config AS0260
+	bool "Sensor as0260"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Support for AS0260 sensor driver.
+
 config OV2722
 	bool "Sensor ov2722"
 	depends on MSM_CAMERA
@@ -367,6 +374,7 @@ config TI201_ACT
 config ACT_OIS_BINDER
        bool "Act_Ois_Binder"
        depends on MSM_CAMERA
+       default n
        ---help---
          Act_Ois_Binder for OIS function through ti201 lens actuator driver.
 
@@ -440,4 +448,11 @@ config VD6869
 	default n
 	---help---
 	ST 4MP Bayer Sensor
+
+config OV4688
+	bool "Sensor ov4688 (BAYER 4M)"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	ov 4MP Bayer Sensor
 

@@ -50,6 +50,8 @@ struct mutex spk_ampl_lock;
 static int tfa9887l_opened;
 static int last_spkampl_state;
 static int dspl_enabled;
+static int tfa9887_step;
+static int tfa9887_step_en;
 static int tfa9887_i2c_write(char *txData, int length);
 static int tfa9887_i2c_read(char *rxData, int length);
 #ifdef CONFIG_DEBUG_FS
@@ -172,14 +174,26 @@ static int tfa9887_i2c_write(char *txData, int length)
 			.buf = txData,
 		},
 	};
+	
+	if (tfa9887_step_en)
+		tfa9887_step ++;
+#if DEBUG
+	pr_err("%s: tfa9887_step %d\n", __func__, tfa9887_step);
+#endif
 
 	rc = i2c_transfer(this_client->adapter, msg, 1);
+
 	if (rc < 0) {
 		pr_err("%s: transfer error %d\n", __func__, rc);
 		return rc;
 	}
 
+	
+	if (tfa9887_step_en)
+		tfa9887_step ++;
+
 #if DEBUG
+	pr_err("%s: tfa9887_step %d\n", __func__, tfa9887_step);
 	{
 		int i = 0;
 		for (i = 0; i < length; i++)
@@ -203,13 +217,25 @@ static int tfa9887_i2c_read(char *rxData, int length)
 		},
 	};
 
+	
+	if (tfa9887_step_en)
+		tfa9887_step ++;
+#if DEBUG
+	pr_err("%s: tfa9887_step %d\n", __func__, tfa9887_step);
+#endif
+
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
 	if (rc < 0) {
 		pr_err("%s: transfer error %d\n", __func__, rc);
 		return rc;
 	}
 
+	
+	if (tfa9887_step_en)
+		tfa9887_step ++;
+
 #if DEBUG
+	pr_err("%s: tfa9887_step %d\n", __func__, tfa9887_step);
 	{
 		int i = 0;
 		for (i = 0; i < length; i++)
@@ -229,7 +255,7 @@ static int tfa9887l_open(struct inode *inode, struct file *file)
 		pr_info("%s: busy\n", __func__);
 	}
 	tfa9887l_opened = 1;
-
+	tfa9887_step_en = 0;
 	return rc;
 }
 
@@ -260,6 +286,9 @@ void set_tfa9887l_spkamp(int en, int dsp_mode)
 	unsigned char power_data[3] = {0, 0, 0};
 	unsigned char SPK_CR[3] = {0x8, 0x8, 0};
 
+	
+	tfa9887_step = 0;
+	tfa9887_step_en = 1;
 	pr_info("%s: en = %d dsp_enabled = %d\n", __func__, en, dspl_enabled);
 	mutex_lock(&spk_ampl_lock);
 	if (en && !last_spkampl_state) {
@@ -281,11 +310,15 @@ void set_tfa9887l_spkamp(int en, int dsp_mode)
 			tfa9887_i2c_write(mute_reg, 1);
 			tfa9887_i2c_read(mute_data + 1, 2);
 			mute_data[0] = 0x6;
-			mute_data[2] &= 0xef;  
+			mute_data[2] &= 0xdf;  
 			power_data[0] = 0x9;
 			power_data[2] &= 0xfe; 
+			
 			tfa9887_i2c_write(power_data, 3);
+			
 			tfa9887_i2c_write(mute_data, 3);
+			power_data[2] |= 0x8;  
+			tfa9887_i2c_write(power_data, 3);
 		}
 	} else if (!en && last_spkampl_state) {
 		last_spkampl_state = 0;
@@ -299,14 +332,24 @@ void set_tfa9887l_spkamp(int en, int dsp_mode)
 			tfa9887_i2c_write(mute_reg, 1);
 			tfa9887_i2c_read(mute_data + 1, 2);
 			mute_data[0] = 0x6;
-			mute_data[2] |= 0x10; 
-			power_data[0] = 0x9;
-			power_data[2] |= 0x1;  
+			mute_data[2] |= 0x20; 
+			
 			tfa9887_i2c_write(mute_data, 3);
+			tfa9887_i2c_write(power_reg, 1);
+			tfa9887_i2c_read(power_data + 1, 2);
+			power_data[0] = 0x9;
+			power_data[2] &= 0xf7;  
+			tfa9887_i2c_write(power_data, 3);
+			
+			
+			power_data[2] |= 0x1;  
 			tfa9887_i2c_write(power_data, 3);
 		}
 	}
 	mutex_unlock(&spk_ampl_lock);
+
+	
+	tfa9887_step_en = 0;
 }
 
 static long tfa9887l_ioctl(struct file *file, unsigned int cmd,
@@ -371,7 +414,7 @@ static long tfa9887l_ioctl(struct file *file, unsigned int cmd,
 
 		len = reg_value[0];
 		
-		pr_info("TPA9887_KLOCK2 %d\n", reg_value[1]);
+		pr_debug("TPA9887_KLOCK2 %d\n", reg_value[1]);
 		if (reg_value[1])
 		   mutex_lock(&spk_ampl_lock);
 		else

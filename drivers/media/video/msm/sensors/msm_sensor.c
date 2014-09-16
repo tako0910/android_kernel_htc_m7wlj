@@ -14,6 +14,8 @@
 #include "msm.h"
 #include "msm_ispif.h"
 #include "msm_camera_i2c_mux.h"
+#include <linux/init.h>
+#include <linux/bootmem.h>
 
 #ifdef CONFIG_RAWCHIP
 #include "rawchip/rawchip.h"
@@ -27,10 +29,7 @@
 
 uint32_t ois_line;
 
-static struct task_struct *tsk_sensor_init = NULL;
-static int oem_sensor_init(void *arg);
-
-static int first_init;
+extern char *saved_command_line;	
 
 static int oem_sensor_init(void *arg)
 {
@@ -46,9 +45,6 @@ static int oem_sensor_init(void *arg)
 	pr_info("%s: E", __func__);
 	
 
-	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-		PIX_0, ISPIF_OFF_IMMEDIATELY));
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
 	s_ctrl->curr_csi_params = NULL;
@@ -67,7 +63,7 @@ static int oem_sensor_init(void *arg)
 			NOTIFY_CSID_CFG,
 			&s_ctrl->curr_csi_params->csid_params);
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_CID_CHANGE, NULL);
+			NOTIFY_CID_CHANGE, &s_ctrl->intf);
 		mb();
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_CSIPHY_CFG,
@@ -217,16 +213,20 @@ int32_t msm_sensor_write_res_settings(struct msm_sensor_ctrl_t *s_ctrl,
 	if (s_ctrl->func_tbl->sensor_adjust_frame_lines)
 		rc = s_ctrl->func_tbl->sensor_adjust_frame_lines(s_ctrl, res);
 
-	if (s_ctrl->prev_gain >= 0 && s_ctrl->prev_dig_gain > 0 && s_ctrl->prev_line > 0){
-		if (s_ctrl->func_tbl->
-			sensor_write_exp_gain_ex != NULL){
-		    s_ctrl->func_tbl->
-		        sensor_write_exp_gain_ex(
-		        s_ctrl,
-		        SENSOR_PREVIEW_MODE,
-		        s_ctrl->prev_gain,
-		        s_ctrl->prev_dig_gain,
-		        s_ctrl->prev_line);
+	if (s_ctrl->func_tbl->sensor_yushanII_set_default_ae) {
+		s_ctrl->func_tbl->sensor_yushanII_set_default_ae(s_ctrl, res);
+	} else {
+		if (s_ctrl->prev_dig_gain > 0 && s_ctrl->prev_line > 0){
+			if (s_ctrl->func_tbl->
+				sensor_write_exp_gain_ex != NULL){
+			    s_ctrl->func_tbl->
+			        sensor_write_exp_gain_ex(
+			        s_ctrl,
+			        SENSOR_PREVIEW_MODE,
+			        s_ctrl->prev_gain,
+			        s_ctrl->prev_dig_gain,
+			        s_ctrl->prev_line);
+			}
 		}
 	}
 
@@ -317,6 +317,28 @@ void msm_sensor_group_hold_off(struct msm_sensor_ctrl_t *s_ctrl)
 		s_ctrl->sensor_i2c_client,
 		s_ctrl->msm_sensor_reg->group_hold_off_conf,
 		s_ctrl->msm_sensor_reg->group_hold_off_conf_size,
+		s_ctrl->msm_sensor_reg->default_data_type);
+}
+
+void msm_sensor_group_hold_on_hdr(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	CDBG("%s: called\n", __func__);
+
+	msm_camera_i2c_write_tbl(
+		s_ctrl->sensor_i2c_client,
+		s_ctrl->msm_sensor_reg->group_hold_on_conf_hdr,
+		s_ctrl->msm_sensor_reg->group_hold_on_conf_size_hdr,
+		s_ctrl->msm_sensor_reg->default_data_type);
+}
+
+void msm_sensor_group_hold_off_hdr(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	CDBG("%s: called\n", __func__);
+
+	msm_camera_i2c_write_tbl(
+		s_ctrl->sensor_i2c_client,
+		s_ctrl->msm_sensor_reg->group_hold_off_conf_hdr,
+		s_ctrl->msm_sensor_reg->group_hold_off_conf_size_hdr,
 		s_ctrl->msm_sensor_reg->default_data_type);
 }
 
@@ -672,33 +694,52 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 		mutex_lock(s_ctrl->sensor_first_mutex);  
 
 #ifdef CONFIG_RAWCHIPII
-		YushanII_reload_firmware();
+		if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
+			YushanII_reload_firmware();
+		}
 #endif
 
-		tsk_sensor_init = kthread_create(oem_sensor_init, s_ctrl, "oem_sensor_init");
-		if (IS_ERR(tsk_sensor_init)) {
+		s_ctrl->tsk_sensor_init = kthread_create(oem_sensor_init, s_ctrl, "oem_sensor_init");
+		if (IS_ERR(s_ctrl->tsk_sensor_init)) {
 			pr_err("%s: kthread_create failed", __func__);
-			rc = PTR_ERR(tsk_sensor_init);
-			tsk_sensor_init = NULL;
+			rc = PTR_ERR(s_ctrl->tsk_sensor_init);
+			s_ctrl->tsk_sensor_init = NULL;
 			mutex_unlock(s_ctrl->sensor_first_mutex);  
 		} else
-			wake_up_process(tsk_sensor_init);
+			wake_up_process(s_ctrl->tsk_sensor_init);
 
-		first_init = 1;
+		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		
 
 		
 		mutex_lock(s_ctrl->sensor_first_mutex);
 
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_OFF_IMMEDIATELY));
+#ifdef CONFIG_RAWCHIPII
+		if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
+			if(YushanII_Get_reloadInfo() == 0){
+				pr_info("stop YushanII first");
+				Ilp0100_stop();
+			}
+		}
+#endif
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_OFF_IMMEDIATELY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_OFF_IMMEDIATELY));
+			break;
+		}
 		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
-		if(!first_init)
+		if(!s_ctrl->first_init)
 			mdelay(50);
-		first_init = 0;
+		s_ctrl->first_init = 0;
 
 		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  
 		
@@ -716,7 +757,7 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
+						NOTIFY_CID_CHANGE, &s_ctrl->intf);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -771,12 +812,22 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 #endif
 
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
-			output_settings[res].op_pixel_clk);
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
+				output_settings[res].op_pixel_clk);
+
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		}
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
 		mutex_unlock(s_ctrl->sensor_first_mutex);  
@@ -796,9 +847,18 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 
 	pr_info("%s: update_type=%d, res=%d\n", __func__, update_type, res);
 
-	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-		PIX_0, ISPIF_OFF_IMMEDIATELY));
+	switch (s_ctrl->intf) {
+	case RDI0:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			RDI_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	default:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			PIX_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	}
 
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
@@ -807,12 +867,12 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->curr_csi_params = NULL;
 		msm_sensor_enable_debugfs(s_ctrl);
 		msm_sensor_write_init_settings(s_ctrl);
-		first_init = 1;
+		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		
-		if(!first_init)
+		if(!s_ctrl->first_init)
 			mdelay(50);
-		first_init = 0;
+		s_ctrl->first_init = 0;
 
 		msm_sensor_write_res_settings(s_ctrl, res);
 		if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
@@ -827,7 +887,7 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
+						NOTIFY_CID_CHANGE, &s_ctrl->intf);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -877,9 +937,18 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
 			output_settings[res].op_pixel_clk);
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		}
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
 	}
@@ -898,9 +967,18 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 
 	pr_info("%s: update_type=%d, res=%d\n", __func__, update_type, res);
 
-	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-		PIX_0, ISPIF_OFF_IMMEDIATELY));
+	switch (s_ctrl->intf) {
+	case RDI0:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			RDI_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	default:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			PIX_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	}
 
 	msleep(30);
 	if (update_type == MSM_SENSOR_REG_INIT) {
@@ -918,7 +996,7 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
+						NOTIFY_CID_CHANGE, &s_ctrl->intf);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -927,12 +1005,12 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 			msleep(20);
 		}
 		msm_sensor_write_init_settings(s_ctrl);
-		first_init = 1;
+		s_ctrl->first_init = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		
-		if(!first_init)
+		if(!s_ctrl->first_init)
 			mdelay(50);
-		first_init = 0;
+		s_ctrl->first_init = 0;
 
 
 		if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
@@ -947,7 +1025,7 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
+						NOTIFY_CID_CHANGE, &s_ctrl->intf);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -999,9 +1077,18 @@ int32_t msm_sensor_setting_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
 			output_settings[res].op_pixel_clk);
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		}
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
 	}
@@ -1022,9 +1109,18 @@ static int oem_sensor_init_ov(void *arg)
 
 	pr_info("%s: E", __func__);
 
-	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-		PIX_0, ISPIF_OFF_IMMEDIATELY));
+	switch (s_ctrl->intf) {
+	case RDI0:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			RDI_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	default:
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+			PIX_0, ISPIF_OFF_IMMEDIATELY));
+		break;
+	}
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
 	s_ctrl->curr_csi_params = NULL;
@@ -1044,7 +1140,7 @@ static int oem_sensor_init_ov(void *arg)
 			NOTIFY_CSID_CFG,
 			&s_ctrl->curr_csi_params->csid_params);
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-					NOTIFY_CID_CHANGE, NULL);
+					NOTIFY_CID_CHANGE, &s_ctrl->intf);
 		mb();
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_CSIPHY_CFG,
@@ -1114,35 +1210,46 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		mutex_lock(s_ctrl->sensor_first_mutex);  
 
 #ifdef CONFIG_RAWCHIPII
-		YushanII_reload_firmware();
+		if (s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
+			YushanII_reload_firmware();
+		}
 #endif
 
-		tsk_sensor_init = kthread_create(oem_sensor_init_ov, s_ctrl, "oem_sensor_init_ov");
-		if (IS_ERR(tsk_sensor_init)) {
+		s_ctrl->tsk_sensor_init = kthread_create(oem_sensor_init_ov, s_ctrl, "oem_sensor_init_ov");
+		if (IS_ERR(s_ctrl->tsk_sensor_init)) {
 			pr_err("%s: kthread_create failed", __func__);
-			rc = PTR_ERR(tsk_sensor_init);
-			tsk_sensor_init = NULL;
+			rc = PTR_ERR(s_ctrl->tsk_sensor_init);
+			s_ctrl->tsk_sensor_init = NULL;
 			mutex_unlock(s_ctrl->sensor_first_mutex);  
 		} else
-			wake_up_process(tsk_sensor_init);
+			wake_up_process(s_ctrl->tsk_sensor_init);
 			 
 
-		first_init = 1;
+		s_ctrl->first_init = 1;
 		
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 	
 		mutex_lock(s_ctrl->sensor_first_mutex);
 
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_OFF_IMMEDIATELY));
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_OFF_IMMEDIATELY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_OFF_IMMEDIATELY));
+			break;
+		}
 		msleep(30);
 		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 
 		
-		if(!first_init)
+		if(!s_ctrl->first_init)
 			mdelay(50);
-		first_init = 0;
+		s_ctrl->first_init = 0;
 
 		pr_info("%s: update_type=MSM_SENSOR_UPDATE_PERIODIC, res=%d\n", __func__, res);  
 		
@@ -1160,7 +1267,7 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
+						NOTIFY_CID_CHANGE, &s_ctrl->intf);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -1221,9 +1328,18 @@ int32_t msm_sensor_setting_parallel_ov(struct msm_sensor_ctrl_t *s_ctrl,
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
 			output_settings[res].op_pixel_clk);
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+		switch (s_ctrl->intf) {
+		case RDI0:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				RDI_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		default:
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+				PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+			break;
+		}
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
 		
@@ -1282,6 +1398,7 @@ int32_t msm_sensor_get_output_info(struct msm_sensor_ctrl_t *s_ctrl,
 		struct sensor_output_info_t *sensor_output_info)
 {
 	int rc = 0;
+	int i=0;
 	CDBG("%s: called\n", __func__);
 
 	sensor_output_info->num_info = s_ctrl->msm_sensor_reg->num_conf;
@@ -1295,6 +1412,14 @@ int32_t msm_sensor_get_output_info(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->sensor_exp_gain_info->sensor_max_linecount = 0xFFFFFFFF;
 
 	sensor_output_info->sensor_max_linecount = s_ctrl->sensor_exp_gain_info->sensor_max_linecount;
+	
+    for (i=0;i<s_ctrl->msm_sensor_reg->num_conf;++i) {
+        if (s_ctrl->adjust_y_output_size)
+            s_ctrl->msm_sensor_reg->output_settings[i].y_output -= 1;
+        if (s_ctrl->adjust_frame_length_line)
+            s_ctrl->msm_sensor_reg->output_settings[i].line_length_pclk *= 2;
+    }
+	
 	
 	 
 	if ((s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) && (s_ctrl->msm_sensor_reg->output_settings_yushanii)) {
@@ -1310,6 +1435,14 @@ int32_t msm_sensor_get_output_info(struct msm_sensor_ctrl_t *s_ctrl,
 			s_ctrl->msm_sensor_reg->num_conf))
 			rc = -EFAULT;
 	}
+	
+    for (i=0;i<s_ctrl->msm_sensor_reg->num_conf;++i) {
+        if (s_ctrl->adjust_y_output_size)
+            s_ctrl->msm_sensor_reg->output_settings[i].y_output += 1;
+        if (s_ctrl->adjust_frame_length_line)
+            s_ctrl->msm_sensor_reg->output_settings[i].line_length_pclk /= 2;
+    }
+    
 	
 	return rc;
 }
@@ -1333,6 +1466,91 @@ int32_t msm_sensor_release(struct msm_sensor_ctrl_t *s_ctrl)
 	return 0;
 }
 
+int32_t msm_sensor_interface_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
+{
+	struct sensor_cfg_data cdata;
+	long   rc = 0;
+
+	if (copy_from_user(&cdata,
+		(void *)argp,
+		sizeof(struct sensor_cfg_data)))
+		return -EFAULT;
+	mutex_lock(s_ctrl->msm_sensor_mutex);
+	CDBG("%s: msm_ispif_config: cfgtype = %d\n", __func__, cdata.cfgtype);
+
+		switch (cdata.cfgtype) {
+		
+		case CFG_SET_ISP_INTERFACE:
+		{
+			uint8_t cur_csid = 0;
+			uint8_t new_csid = s_ctrl->sensordata->pdata->csid_core;
+			msm_ispif_get_input_sel_cid(cdata.cfg.intf, &cur_csid);
+
+			pr_info("%s: intftype %d cur_csid %d new_csid %d\n",__func__,
+				cdata.cfg.intf, cur_csid, new_csid);
+
+			if ((s_ctrl->curr_csi_params) && (s_ctrl->intf != cdata.cfg.intf || cur_csid != new_csid)) {
+				s_ctrl->intf = cdata.cfg.intf;
+
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_CSID_CFG,
+					&s_ctrl->curr_csi_params->csid_params);
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_CID_CHANGE, &s_ctrl->intf);
+				mb();
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_CSIPHY_CFG,
+					&s_ctrl->curr_csi_params->csiphy_params);
+				mb();
+				msleep(20);
+			}
+		}
+		break;
+		case CFG_SET_STOP_STREAMING:
+			pr_info("%s: CFG_SET_STOP_STREAMING\n", __func__);
+
+			switch (s_ctrl->intf) {
+			case RDI0:
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+					RDI_0, ISPIF_OFF_IMMEDIATELY));
+				break;
+			default:
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+					PIX_0, ISPIF_OFF_IMMEDIATELY));
+				break;
+			}
+
+			break;
+		case CFG_SET_START_STREAMING:
+			pr_info("%s: CFG_SET_START_STREAMING\n", __func__);
+
+			switch (s_ctrl->intf) {
+			case RDI0:
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+					RDI_0, ISPIF_ON_FRAME_BOUNDARY));
+				break;
+			default:
+				v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+					NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
+					PIX_0, ISPIF_ON_FRAME_BOUNDARY));
+				break;
+			}
+
+			break;
+		
+		default:
+			rc = -EFAULT;
+			break;
+		}
+
+	mutex_unlock(s_ctrl->msm_sensor_mutex);
+
+	return rc;
+}
+
 long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg)
 {
@@ -1346,6 +1564,9 @@ long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 
 	case VIDIOC_MSM_SENSOR_RELEASE:
 		return msm_sensor_release(s_ctrl);
+
+	case VIDIOC_MSM_SENSOR_INTERFACE_CFG:
+		return msm_sensor_interface_config(s_ctrl, argp);
 
 	default:
 		return -ENOIOCTLCMD;
@@ -1519,7 +1740,12 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 		}
 		break;
 		
-
+		case CFG_SET_BLACK_LEVEL_CALIBRATION_ONGOING:
+			s_ctrl->is_black_level_calibration_ongoing = TRUE;
+			break;
+		case CFG_SET_BLACK_LEVEL_CALIBRATION_DONE:
+			s_ctrl->is_black_level_calibration_ongoing = FALSE;
+			break;
 		default:
 			rc = -EFAULT;
 			break;
@@ -1684,23 +1910,25 @@ int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 	msm_camio_clk_rate_set(MSM_SENSOR_MCLK_24HZ);
 
-	if (data->sensor_platform_info->sensor_reset_enable)
-		gpio = data->sensor_platform_info->sensor_reset;
-	else
-		gpio = data->sensor_platform_info->sensor_pwd;
+    if (!data->sensor_platform_info->board_control_reset_pin) {
+        if (data->sensor_platform_info->sensor_reset_enable)
+            gpio = data->sensor_platform_info->sensor_reset;
+        else
+            gpio = data->sensor_platform_info->sensor_pwd;
 
-	rc = gpio_request(gpio, "SENSOR_NAME");
-	if (!rc) {
-		CDBG("%s: reset sensor\n", __func__);
-		gpio_direction_output(gpio, 0);
-		usleep_range(1000, 2000);
-		gpio_set_value_cansleep(gpio, 1);
-		usleep_range(4000, 5000);
-	} else {
-		pr_err("%s: gpio request fail", __func__);
-	}
+        rc = gpio_request(gpio, "SENSOR_NAME");
+        if (!rc) {
+            CDBG("%s: reset sensor\n", __func__);
+            gpio_direction_output(gpio, 0);
+            usleep_range(1000, 2000);
+            gpio_set_value_cansleep(gpio, 1);
+            usleep_range(4000, 5000);
+        } else {
+            pr_err("%s: gpio request fail", __func__);
+        }
+    }
 
-	return rc;
+    return rc;
 }
 
 int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl)
@@ -1715,15 +1943,16 @@ int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s: failed to s_ctrl sensordata NULL\n", __func__);
 		return (-1);
 	}
+    if (!data->sensor_platform_info->board_control_reset_pin) {
+    	if (data->sensor_platform_info->sensor_reset_enable)
+    		gpio = data->sensor_platform_info->sensor_reset;
+    	else
+    		gpio = data->sensor_platform_info->sensor_pwd;
 
-	if (data->sensor_platform_info->sensor_reset_enable)
-		gpio = data->sensor_platform_info->sensor_reset;
-	else
-		gpio = data->sensor_platform_info->sensor_pwd;
-
-	gpio_set_value_cansleep(gpio, 0);
-	usleep_range(1000, 2000);
-	gpio_free(gpio);
+    	gpio_set_value_cansleep(gpio, 0);
+    	usleep_range(1000, 2000);
+    	gpio_free(gpio);
+	}
 	return 0;
 }
 
@@ -1731,8 +1960,8 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
 	uint16_t chipid = 0;
-#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_DUMMY)\
-		|| defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY)
+#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
+		|| defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL) || defined(CONFIG_MACH_DELUXE_UB1)
 	int i=1;
 #else
 	int i=10;
@@ -1779,8 +2008,8 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		}
 #endif
 	if (chipid != s_ctrl->sensor_id_info->sensor_id) {
-#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_DUMMY)\
-    || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY)
+#if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
+    || defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL)
 		if (chipid == 0x174 && s_ctrl->sensor_id_info->sensor_id == 0x175)
 		{
 			
@@ -1844,7 +2073,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 #endif
 	}
 
-	
+	if (board_mfg_mode () || s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
 #ifdef CONFIG_RAWCHIPII
 		rc = YushanII_probe_init();
 		if (rc < 0) {
@@ -1862,7 +2091,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 			}
 		}
 #endif
-	
+	}
 
 	if (s_ctrl->func_tbl && s_ctrl->func_tbl->sensor_power_up)
 		rc = s_ctrl->func_tbl->sensor_power_up(s_ctrl);
@@ -1925,6 +2154,10 @@ power_down:
 	}
 
 	msm_camio_probe_off_bootup(s_ctrl);	
+
+	s_ctrl->intf = PIX0; 
+	s_ctrl->tsk_sensor_init = NULL;
+	s_ctrl->first_init = 0;
 
 	return rc;
 }
@@ -2073,4 +2306,124 @@ int msm_sensor_enable_debugfs(struct msm_sensor_ctrl_t *s_ctrl)
 		return -ENOMEM;
 
 	return 0;
+}
+
+#include <linux/fs.h>
+#include <linux/file.h>
+#include <linux/vmalloc.h>
+#include <asm/segment.h>
+#include <asm/uaccess.h>
+#include <linux/buffer_head.h>
+
+void msm_fclose(struct file* file) {
+    filp_close(file, NULL);
+}
+
+int msm_fwrite(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size) {
+    mm_segment_t oldfs;
+    int ret;
+
+    oldfs = get_fs();
+    set_fs(get_ds());
+
+    ret = vfs_write(file, data, size, &offset);
+
+    set_fs(oldfs);
+    return ret;
+}
+
+struct file* msm_fopen(const char* path, int flags, int rights) {
+    struct file* filp = NULL;
+    mm_segment_t oldfs;
+    int err = 0;
+
+    oldfs = get_fs();
+    set_fs(get_ds());
+    filp = filp_open(path, flags, rights);
+    set_fs(oldfs);
+    if(IS_ERR(filp)) {
+        err = PTR_ERR(filp);
+    pr_err("[CAM]File Open Error:%s",path);
+        return NULL;
+    }
+    if(!filp->f_op){
+    pr_err("[CAM]File Operation Method Error!!");
+    return NULL;
+    }
+
+    return filp;
+}
+
+void msm_read_all_otp_data(struct msm_camera_i2c_client* client,short start_address, uint8_t* buffer, size_t count)
+{
+    int i=0, rc=0;
+    uint16_t read_data=0;
+
+    for (i=start_address; i<start_address+count; ++i) {
+        rc = msm_camera_i2c_read (client, i, &read_data, MSM_CAMERA_I2C_BYTE_DATA);
+        if (rc < 0){
+          pr_err("%s: msm_camera_i2c_read 0x%x failed\n", __func__, i);
+        }
+        *buffer++= (uint8_t)read_data;
+    }
+}
+void msm_dump_otp_to_file (const char* sensor_name, int valid_layer, short start_address, uint8_t* buffer, size_t count)  
+{  
+    uint8_t *path= "/data/otp.txt";  
+    struct file* f = msm_fopen (path, O_CREAT|O_RDWR|O_TRUNC, 0666);  
+    char buf[512];  
+    int i=0;  
+    int len=0,offset=0;  
+    pr_info ("%s\n",__func__);  
+  
+    if (f) {  
+        len = sprintf (buf,"%s\n",sensor_name);  
+        msm_fwrite (f,offset,buf,len);  
+        offset += len;  
+        len = sprintf (buf,"valid layer=%d\n",valid_layer);  
+        msm_fwrite (f,offset,buf,len);  
+        offset += len;  
+
+        for (i=start_address; i<start_address+count; ++i) {
+            len = sprintf (buf,"0x%x 0x%x\n",i,*buffer++);  
+            msm_fwrite (f,offset,buf,len);  
+            offset += len;  
+        }
+        msm_fclose (f);  
+    } else {  
+        pr_err ("%s: fail to open file\n", __func__);  
+    }  
+}  
+
+void msm_read_command_line(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	char *p;
+	size_t cmdline_len;
+	char *smode;
+	size_t sn_len = 0;
+
+	pr_info("%s", __func__);
+
+	cmdline_len = strlen(saved_command_line);
+	p = saved_command_line;
+	for (p = saved_command_line; p < saved_command_line + cmdline_len - strlen("androidboot.serialno="); p++) {
+		if (!strncmp(p, "androidboot.mode=", strlen("androidboot.mode="))) {
+			p += strlen("androidboot.mode=");
+			while (*p != ' '  && *p != '\0') {
+				sn_len++;
+				p++;
+			}
+			p -= sn_len;
+
+			smode = kmalloc(sn_len + 1, GFP_KERNEL);
+			strncpy(smode, p, sn_len);
+
+			if (!strncmp(p, "normal", strlen("normal"))) {
+				s_ctrl->boot_mode_normal = true;
+			}
+
+			smode[sn_len] = '\0';
+			pr_info("%s:smode=%s, boot_mode_normal=%d", __func__, smode, s_ctrl->boot_mode_normal);
+		}
+	}
 }

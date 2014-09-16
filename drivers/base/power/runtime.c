@@ -20,6 +20,10 @@ extern struct device *mdm_usb1_1_dev;
 extern struct device *msm_hsic_host_dev;
 #endif	
 
+#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+extern int mdm_is_in_restart;
+#endif 
+
 static int rpm_resume(struct device *dev, int rpmflags);
 static int rpm_suspend(struct device *dev, int rpmflags);
 
@@ -146,8 +150,8 @@ static int rpm_idle(struct device *dev, int rpmflags)
 	retval = rpm_check_suspend_allowed(dev);
 	
 	
-	#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-	if (msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	if (msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 		dev_info(dev,"%s: rpm_check_suspend_allowed return %d\n", __func__, retval);
 	}
 	#endif	
@@ -1178,8 +1182,8 @@ int __pm_runtime_idle(struct device *dev, int rpmflags)
 		if (!atomic_dec_and_test(&dev->power.usage_count)) {
 			
 			
-			#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-			if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+			#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+			if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 				dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 					atomic_read(&dev->power.usage_count));
 			}
@@ -1192,8 +1196,8 @@ int __pm_runtime_idle(struct device *dev, int rpmflags)
 
 		
 		
-		#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-		if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+		#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+		if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 			dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 				atomic_read(&dev->power.usage_count));
 		}
@@ -1221,8 +1225,8 @@ int __pm_runtime_suspend(struct device *dev, int rpmflags)
 		if (!atomic_dec_and_test(&dev->power.usage_count)) {
 			
 			
-			#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-			if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+			#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+			if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 				dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 					atomic_read(&dev->power.usage_count));
 			}
@@ -1234,8 +1238,8 @@ int __pm_runtime_suspend(struct device *dev, int rpmflags)
 
 		
 		
-		#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-		if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+		#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+		if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 			dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 				atomic_read(&dev->power.usage_count));
 		}
@@ -1276,8 +1280,8 @@ int __pm_runtime_resume(struct device *dev, int rpmflags)
 
 		
 		
-		#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-		if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+		#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+		if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 			dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 				atomic_read(&dev->power.usage_count));
 		}
@@ -1501,8 +1505,8 @@ void pm_runtime_forbid(struct device *dev)
 
 	
 	
-	#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-	if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 		dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 			atomic_read(&dev->power.usage_count));
 	}
@@ -1529,8 +1533,8 @@ void pm_runtime_allow(struct device *dev)
 
 	
 	
-	#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-	if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 		dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 			atomic_read(&dev->power.usage_count));
 	}
@@ -1576,8 +1580,8 @@ static void update_autosuspend(struct device *dev, int old_delay, int old_use)
 
 			
 			
-			#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-			if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+			#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+			if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 				dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 					atomic_read(&dev->power.usage_count));
 			}
@@ -1598,8 +1602,8 @@ static void update_autosuspend(struct device *dev, int old_delay, int old_use)
 
 			
 			
-			#if defined(CONFIG_USB_EHCI_MSM_HSIC)
-			if (dev && msm_hsic_host_dev == dev && (get_radio_flag() & 0x0001)) {
+			#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+			if (dev && msm_hsic_host_dev == dev && (mdm_is_in_restart || (get_radio_flag() & 0x0001))) {
 				dev_info(dev, "%s[%d] usage_count[%d]\n", __func__, __LINE__,
 					atomic_read(&dev->power.usage_count));
 			}

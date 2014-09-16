@@ -33,3 +33,5 @@ rmnet_usb-y			:= rmnet_usb_ctrl.o rmnet_usb_data.o
 obj-$(CONFIG_MSM_RMNET_USB)	+= rmnet_usb.o
 obj-$(CONFIG_USB_NET_QMI_WWAN)	+= qmi_wwan.o
 
+ccflags-y += -DDISABLE_RMNET_USB_IPV6_ACCEPT_RA_DEFRTR
+ccflags-y += -DHTC_ADD_RMNET_USB_RESET_RESUME

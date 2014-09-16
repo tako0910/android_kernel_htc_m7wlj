@@ -33,6 +33,8 @@ enum {
 	USB_FUNCTION_MODEM_MDM, 
 	USB_FUNCTION_NCM,
 	USB_FUNCTION_PROJECTOR2,
+	USB_FUNCTION_AUDIO_SOURCE, 
+	USB_FUNCTION_PTP, 
 	USB_FUNCTION_AUTOBOT = 30,
 	USB_FUNCTION_RNDIS_IPT = 31,
 };
@@ -107,6 +109,14 @@ static struct usb_string_node usb_string_array[] = {
 		.usb_function_flag = 1 << USB_FUNCTION_PROJECTOR2,
 		.name = "projector2",
 	},
+	{
+		.usb_function_flag = 1 << USB_FUNCTION_AUDIO_SOURCE,
+		.name = "audio_source",
+	},
+	{
+		.usb_function_flag = 1 << USB_FUNCTION_PTP,
+		.name = "ptp",
+	},
 
 };
 
@@ -123,6 +133,8 @@ void android_force_reset(void)
 {
 	if (_android_dev && _android_dev->cdev)
 		usb_composite_force_reset(_android_dev->cdev);
+	else
+		pr_info("force reset fails: no device.\n");
 }
 
 static bool isFunctionDisabled(struct android_usb_function *function)
@@ -217,7 +229,7 @@ static unsigned int htc_usb_get_func_combine_value(void)
 	}
 	return val;
 }
-static DEFINE_MUTEX(function_bind_sem);
+
 int htc_usb_enable_function(char *name, int ebl)
 {
 	int i;
@@ -309,6 +321,8 @@ int android_switch_function(unsigned func)
 	
 	if (dev->enabled != true) {
 		pr_info("%s: USB driver is not initialize\n", __func__);
+		dev->bSwitchFunWhileInit = true;
+		dev->SwitchFunCombination = func;
 		return 0;
 	}
 	
@@ -393,6 +407,9 @@ int android_switch_function(unsigned func)
 		} else if ((func & (1 << USB_FUNCTION_MTP)) &&
 				!strcmp(f->name, "mtp"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
+		else if ((func & (1 << USB_FUNCTION_PTP)) &&
+				!strcmp(f->name, "ptp"))
+			list_add_tail(&f->enabled_list, &dev->enabled_functions);
 		else if ((func & (1 << USB_FUNCTION_ACCESSORY)) &&
 				!strcmp(f->name, "accessory"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
@@ -423,6 +440,8 @@ int android_switch_function(unsigned func)
 				func &= ~(1 << USB_FUNCTION_MODEM_MDM);
 		}
 #endif
+		else if ((func & (1 << USB_FUNCTION_AUDIO_SOURCE)) && !strcmp(f->name, "audio_source"))
+			list_add_tail(&f->enabled_list, &dev->enabled_functions);
 	}
 #ifdef CONFIG_SENSE_4_PLUS
 	

@@ -1039,6 +1039,13 @@ config FB_MSM_CABC_LEVEL_CONTROL
 	---help---
 	  Use attribute to switch CABC level.
 
+config FB_MSM_UNDERFLOW_WORKAROUND
+	bool "Display underflow workaround"
+	default y
+	---help---
+	  Force underflow color to black to avoid blue splash.
+	  Say Y here after CRC stage.
+
 if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"
 endif

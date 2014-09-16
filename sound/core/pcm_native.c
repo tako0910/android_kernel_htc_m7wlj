@@ -474,7 +474,8 @@ static int snd_pcm_hw_params(struct snd_pcm_substream *substream,
 	runtime->silence_threshold = 0;
 	runtime->silence_size = 0;
 	runtime->boundary = runtime->buffer_size;
-	while (runtime->boundary * 2 <= LONG_MAX - runtime->buffer_size)
+	while (runtime->boundary * 2 * runtime->channels <=
+					LONG_MAX - runtime->buffer_size)
 		runtime->boundary *= 2;
 
 	snd_pcm_timer_resolution_change(substream);
@@ -1754,6 +1755,10 @@ static int snd_pcm_link(struct snd_pcm_substream *substream, int fd)
 	struct snd_pcm_substream *substream1;
 	struct snd_pcm_group *group;
 
+	
+	if (PCM_RUNTIME_CHECK(substream))
+		return -ENXIO;
+
 	file = snd_pcm_file_fd(fd);
 	if (!file)
 		return -EBADFD;
@@ -1765,10 +1770,6 @@ static int snd_pcm_link(struct snd_pcm_substream *substream, int fd)
 		goto _nolock;
 	}
 	down_write(&snd_pcm_link_rwsem);
-
-	
-	if (PCM_RUNTIME_CHECK(substream))
-		return -ENXIO;
 
 	write_lock_irq(&snd_pcm_link_rwlock);
 	if (substream->runtime->status->state == SNDRV_PCM_STATE_OPEN ||
@@ -2707,6 +2708,7 @@ static int snd_pcm_sync_ptr(struct snd_pcm_substream *substream,
 	volatile struct snd_pcm_mmap_status *status;
 	volatile struct snd_pcm_mmap_control *control;
 	int err;
+	snd_pcm_uframes_t hw_avail;
 
 	
 	if (PCM_RUNTIME_CHECK(substream))
@@ -2735,6 +2737,16 @@ static int snd_pcm_sync_ptr(struct snd_pcm_substream *substream,
 		control->avail_min = sync_ptr.c.control.avail_min;
 	else
 		sync_ptr.c.control.avail_min = control->avail_min;
+
+	if (runtime->render_flag & SNDRV_NON_DMA_MODE) {
+		hw_avail = snd_pcm_playback_hw_avail(runtime);
+		if ((hw_avail >= runtime->start_threshold)
+			&& (runtime->render_flag &
+				SNDRV_RENDER_STOPPED)) {
+			if (substream->ops->restart)
+				substream->ops->restart(substream);
+		}
+	}
 	sync_ptr.s.status.state = status->state;
 	sync_ptr.s.status.hw_ptr = status->hw_ptr;
 	sync_ptr.s.status.tstamp = status->tstamp;
@@ -2852,6 +2864,7 @@ static int snd_pcm_common_ioctl1(struct file *file,
 	case SNDRV_COMPRESS_GET_PARAMS:
 	case SNDRV_COMPRESS_TSTAMP:
 	case SNDRV_COMPRESS_DRAIN:
+	case SNDRV_COMPRESS_METADATA_MODE:
 		return snd_compressed_ioctl(substream, cmd, arg);
 	}
 	snd_printd("unknown ioctl = 0x%x\n", cmd);
@@ -3645,13 +3658,13 @@ static int snd_pcm_hw_refine_old_user(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params_old *oparams = NULL;
 	int err;
 
-	params = kmalloc(sizeof(*params), GFP_KERNEL);
-	if (!params)
-		return -ENOMEM;
-
 	
 	if (PCM_RUNTIME_CHECK(substream))
 		return -ENXIO;
+
+	params = kmalloc(sizeof(*params), GFP_KERNEL);
+	if (!params)
+		return -ENOMEM;
 
 	oparams = memdup_user(_oparams, sizeof(*oparams));
 	if (IS_ERR(oparams)) {
@@ -3679,13 +3692,13 @@ static int snd_pcm_hw_params_old_user(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params_old *oparams = NULL;
 	int err;
 
-	params = kmalloc(sizeof(*params), GFP_KERNEL);
-	if (!params)
-		return -ENOMEM;
-
 	
 	if (PCM_RUNTIME_CHECK(substream))
 		return -ENXIO;
+
+	params = kmalloc(sizeof(*params), GFP_KERNEL);
+	if (!params)
+		return -ENOMEM;
 
 	oparams = memdup_user(_oparams, sizeof(*oparams));
 	if (IS_ERR(oparams)) {

@@ -416,35 +416,44 @@ long felica_uart_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	unsigned int ret_str = 0;
 	FELICA_LOG_DEBUG("[FELICA_DD] %s START", __func__);
-	
-	if (down_interruptible(&dev_sem->felica_sem)) {
-		FELICA_LOG_ERR("[FELICA_DD] %s race condition", __func__);
-		return -ERESTARTSYS;
-	}
-	FELICA_LOG_DEBUG("[FELICA_DD] %s DOWN SEM", __func__);
-	memset(gfa_send_str, 0, FELICA_NL_MSG_SIZE);
-	memset(gfa_rcv_str, 0, FELICA_NL_MSG_SIZE);
-	gfa_send_str[0] = FELICA_NL_REQ_AVAIABLE;
-	felica_nl_send_msg(1);
-	felica_nl_wait_ret_msg();
-	if( gfa_rcv_str[1] == FELICA_NL_SUCCESS )
-	{
+
+	switch (cmd) {
+	case FIONREAD:
 		
-		ret_str = ( ( (unsigned int)gfa_rcv_str[2] << 8 ) & 0xFF00 ) | (unsigned int) gfa_rcv_str[3];
-		FELICA_LOG_DEBUG("Available Success data size [%d]", ret_str);
-	}
-	else
-	{
-		FELICA_LOG_ERR("[FELICA_DD] %s Available Fail", __func__);
+		if (down_interruptible(&dev_sem->felica_sem)) {
+			FELICA_LOG_ERR("[FELICA_DD] %s race condition", __func__);
+			return -ERESTARTSYS;
+		}
+		FELICA_LOG_DEBUG("[FELICA_DD] %s DOWN SEM", __func__);
+		memset(gfa_send_str, 0, FELICA_NL_MSG_SIZE);
+		memset(gfa_rcv_str, 0, FELICA_NL_MSG_SIZE);
+		gfa_send_str[0] = FELICA_NL_REQ_AVAIABLE;
+		felica_nl_send_msg(1);
+		felica_nl_wait_ret_msg();
+		if( gfa_rcv_str[1] == FELICA_NL_SUCCESS )
+		{
+			
+			ret_str = ( ( (unsigned int)gfa_rcv_str[2] << 8 ) & 0xFF00 ) | (unsigned int) gfa_rcv_str[3];
+			FELICA_LOG_DEBUG("Available Success data size [%d]", ret_str);
+		}
+		else
+		{
+			FELICA_LOG_ERR("[FELICA_DD] %s Available Fail", __func__);
+			
+			up(&dev_sem->felica_sem);
+			return -EINVAL;
+		}
+		FELICA_LOG_DEBUG("[FELICA_DD] %s END", __func__);
 		
 		up(&dev_sem->felica_sem);
-		return -EINVAL;
+
+		FELICA_LOG_DEBUG("[FELICA_DD] %s UP SEM", __func__);
+		return put_user(ret_str, (unsigned int __user *) arg);
+
+	default:
+		FELICA_LOG_INFO("[FELICA_DD] %s  default cmd=0x%x arg=0x%lx", __func__, cmd, arg);
+		return -ENOIOCTLCMD;
 	}
-	FELICA_LOG_DEBUG("[FELICA_DD] %s END", __func__);
-	
-	up(&dev_sem->felica_sem);
-	FELICA_LOG_DEBUG("[FELICA_DD] %s UP SEM", __func__);
-	return put_user(ret_str, (unsigned int __user *) arg);
 
 }
 

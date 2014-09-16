@@ -73,6 +73,8 @@ uid_t felica_dev_uid[16] = {UID_MOBILE_FELICA_CLIENT, UID_MOBILE_FELICA_CLIENT, 
 		UID_MOBILE_FELICA_CLIENT, UID_MOBILE_FELICA_CLIENT, UID_MOBILE_FELICA_CLIENT,
 		UID_MOBILE_FELICA_CLIENT, UID_MOBILE_FELICA_CLIENT};
 
+#define UID_INSTALLD_SERVICE   1012
+
 #define UID_NFC_SERVICE        1027
 
 #ifdef CONFIG_APQ8064_ONLY
@@ -496,6 +498,9 @@ static int is_installd(pid_t pid, const char *name, uid_t uid)
 	if (pid == installd_pid)
 		return 1;
 	if (name && !strcmp("installd", name) && (uid == 0))
+		return 1;
+	
+	if (name && !strcmp("installd", name) && (uid == UID_INSTALLD_SERVICE))
 		return 1;
 	return 0;
 }

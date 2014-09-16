@@ -106,6 +106,11 @@ struct workqueue_struct *ssr_wq;
 static int crashed_modem;
 #endif
 
+#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+int mdm_is_in_restart = 0;
+#endif 
+
+
 static LIST_HEAD(restart_log_list);
 static LIST_HEAD(subsystem_list);
 static DEFINE_SPINLOCK(subsystem_list_lock);
@@ -185,6 +190,12 @@ int get_restart_level()
 	return restart_level;
 }
 EXPORT_SYMBOL(get_restart_level);
+
+int get_enable_ramdumps()
+{
+	return enable_ramdumps;
+}
+EXPORT_SYMBOL(get_enable_ramdumps);
 
 static int restart_level_set(const char *val, struct kernel_param *kp)
 {
@@ -411,6 +422,20 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	pr_debug("[%p]: Starting restart sequence for %s\n", current,
 			r_work->subsys->name);
 
+	
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	for (i = 0; i < restart_list_count; i++) {
+		if (!restart_list[i])
+			continue;
+
+		if (strcmp(restart_list[i]->name, EXTERNAL_MODEM) == 0) {
+			mdm_is_in_restart = 1;
+			pr_debug("[%s]: mdm_is_in_restart=%d\n", __func__, mdm_is_in_restart);
+		}
+	}
+	#endif 
+	
+
 	_send_notification_to_order(restart_list,
 				restart_list_count,
 				SUBSYS_BEFORE_SHUTDOWN);
@@ -469,9 +494,20 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	pr_info("[%p]: Restart sequence for %s completed.\n",
 			current, r_work->subsys->name);
 
-#ifdef CONFIG_QSC_MODEM
-	crashed_modem = 0;
-#endif
+	
+	#if defined(CONFIG_ARCH_APQ8064) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+	for (i = 0; i < restart_list_count; i++) {
+		if (!restart_list[i])
+			continue;
+
+		if (strcmp(restart_list[i]->name, EXTERNAL_MODEM) == 0) {
+			mdm_is_in_restart = 0;
+			pr_debug("[%s]: mdm_is_in_restart=%d\n", __func__, mdm_is_in_restart);
+		}
+	}
+	#endif 
+	
+
 	mutex_unlock(powerup_lock);
 
 	mutex_unlock(&soc_order_reg_lock);
@@ -513,6 +549,9 @@ static void __subsystem_restart(struct subsys_data *subsys)
 		     __func__, subsys->name, rc);
 }
 
+#ifdef CONFIG_SERIAL_MSM_HS_DEBUG_RINGBUFFER
+void dump_uart_ringbuffer(void);
+#endif
 int subsystem_restart(const char *subsys_name)
 {
 	struct subsys_data *subsys;
@@ -541,6 +580,16 @@ int subsystem_restart(const char *subsys_name)
 	#endif 
 	
 
+	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
+		subsys_name, restart_level);
+
+	subsys = _find_subsystem(subsys_name);
+
+	if (!subsys) {
+		pr_warn("Unregistered subsystem %s!\n", subsys_name);
+		return -EINVAL;
+	}
+
 #ifdef CONFIG_QSC_MODEM
 	if(strcmp(subsys_name, "external_modem") == 0){
 		crashed_modem = 1;
@@ -552,15 +601,11 @@ int subsystem_restart(const char *subsys_name)
 	}
 #endif
 
-	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
-		subsys_name, restart_level);
-
-	subsys = _find_subsystem(subsys_name);
-
-	if (!subsys) {
-		pr_warn("Unregistered subsystem %s!\n", subsys_name);
-		return -EINVAL;
+#ifdef CONFIG_SERIAL_MSM_HS_DEBUG_RINGBUFFER
+	if(strcmp(subsys_name, "qsc_modem") == 0){
+		dump_uart_ringbuffer();
 	}
+#endif
 
 	switch (restart_level) {
 
@@ -674,7 +719,7 @@ static int __init ssr_init_soc_restart_orders(void)
 	}
 
 	if (cpu_is_msm8960() || cpu_is_msm8930() || cpu_is_msm8930aa() ||
-	    cpu_is_msm9615() || cpu_is_apq8064() || cpu_is_msm8627()) {
+	    cpu_is_msm9615() || cpu_is_apq8064() || cpu_is_msm8627() || is_qsc_dsda()) {
 		if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE) {
 			restart_orders = restart_orders_8960_sglte;
 			n_restart_orders =
@@ -689,8 +734,8 @@ static int __init ssr_init_soc_restart_orders(void)
 			n_restart_orders = ARRAY_SIZE(restart_orders_8960);
 		}
 		
-#if defined(CONFIG_ARCH_DUMMY) || defined(CONFIG_ARCH_DUMMY)
-		if (!0) { 
+#if defined(CONFIG_ARCH_APQ8064_M7DXG) || defined(CONFIG_ARCH_APQ8064_DLPDXG) || defined(CONFIG_ARCH_APQ8064_T6DXG)
+		if (!machine_is_m7_evm()) { 
 			restart_orders = restart_orders_8064_dsda;
 			n_restart_orders =
 				ARRAY_SIZE(restart_orders_8064_dsda);
