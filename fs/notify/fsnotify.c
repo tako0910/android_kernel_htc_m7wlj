@@ -51,11 +51,11 @@ void __fsnotify_update_child_dentry_flags(struct inode *inode)
 	watched = fsnotify_inode_watches_children(inode);
 
 	spin_lock(&inode->i_lock);
-	list_for_each_entry(alias, &inode->i_dentry, d_alias) {
+	list_for_each_entry(alias, &inode->i_dentry, d_u.d_alias) {
 		struct dentry *child;
 
 		spin_lock(&alias->d_lock);
-		list_for_each_entry(child, &alias->d_subdirs, d_u.d_child) {
+		list_for_each_entry(child, &alias->d_subdirs, d_child) {
 			if (!child->d_inode)
 				continue;
 

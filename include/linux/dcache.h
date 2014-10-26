@@ -84,12 +84,12 @@ struct dentry {
 	void *d_fsdata;			
 
 	struct list_head d_lru;		
+	struct list_head d_child;	
+	struct list_head d_subdirs;	
 	union {
-		struct list_head d_child;	
+		struct list_head d_alias;	
 	 	struct rcu_head d_rcu;
 	} d_u;
-	struct list_head d_subdirs;	
-	struct list_head d_alias;	
 };
 
 enum dentry_d_lock_class
