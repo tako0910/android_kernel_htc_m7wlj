@@ -3038,7 +3038,7 @@ static int dump_cc_uah(void)
 int prev_cc_uah = 0;
 static int pm8921_bms_suspend(struct device *dev)
 {
-	u64 val;
+	u64 val = 0;
 #if 0 
 	int rc;
 	struct pm8xxx_adc_chan_result result;
@@ -3086,7 +3086,7 @@ static int pm8921_bms_suspend(struct device *dev)
 #define DELTA_RBATT_PERCENT	10
 static int pm8921_bms_resume(struct device *dev)
 {
-	u64 val;
+	u64 val = 0;
 #if 0 
 	struct pm8921_rbatt_params raw;
 	struct pm8921_bms_chip *chip = dev_get_drvdata(dev);
