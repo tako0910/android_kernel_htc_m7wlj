@@ -27,10 +27,10 @@
 
 #include <linux/types.h>
 #include <sound/asound.h>
-#include "compress_params.h"
+#include <sound/compress_params.h>
 
 
-#define SNDRV_COMPRESS_VERSION SNDRV_PROTOCOL_VERSION(0, 1, 0)
+#define SNDRV_COMPRESS_VERSION SNDRV_PROTOCOL_VERSION(0, 1, 1)
 struct snd_compressed_buffer {
 	__u32 fragment_size;
 	__u32 fragments;
@@ -78,6 +78,27 @@ struct snd_compr_codec_caps {
 	struct snd_codec_desc descriptor[MAX_NUM_CODEC_DESCRIPTORS];
 };
 
+/**
+ * @SNDRV_COMPRESS_ENCODER_PADDING: no of samples appended by the encoder at the
+ * end of the track
+ * @SNDRV_COMPRESS_ENCODER_DELAY: no of samples inserted by the encoder at the
+ * beginning of the track
+ */
+enum {
+	SNDRV_COMPRESS_ENCODER_PADDING = 1,
+	SNDRV_COMPRESS_ENCODER_DELAY = 2,
+};
+
+/**
+ * struct snd_compr_metadata: compressed stream metadata
+ * @key: key id
+ * @value: key value
+ */
+struct snd_compr_metadata {
+	 __u32 key;
+	 __u32 value[8];
+};
+
 struct snd_compr_audio_info {
 	uint32_t frame_size;
 	uint32_t reserved[15];
@@ -89,6 +110,10 @@ struct snd_compr_audio_info {
 						struct snd_compr_codec_caps)
 #define SNDRV_COMPRESS_SET_PARAMS	_IOW('C', 0x12, struct snd_compr_params)
 #define SNDRV_COMPRESS_GET_PARAMS	_IOR('C', 0x13, struct snd_codec)
+#define SNDRV_COMPRESS_SET_METADATA	_IOW('C', 0x14,\
+						 struct snd_compr_metadata)
+#define SNDRV_COMPRESS_GET_METADATA	_IOWR('C', 0x15,\
+						 struct snd_compr_metadata)
 #define SNDRV_COMPRESS_TSTAMP		_IOR('C', 0x20, struct snd_compr_tstamp)
 #define SNDRV_COMPRESS_AVAIL		_IOR('C', 0x21, struct snd_compr_avail)
 #define SNDRV_COMPRESS_PAUSE		_IO('C', 0x30)
@@ -96,7 +121,13 @@ struct snd_compr_audio_info {
 #define SNDRV_COMPRESS_START		_IO('C', 0x32)
 #define SNDRV_COMPRESS_STOP		_IO('C', 0x33)
 #define SNDRV_COMPRESS_DRAIN		_IO('C', 0x34)
+#define SNDRV_COMPRESS_NEXT_TRACK	_IO('C', 0x35)
+#define SNDRV_COMPRESS_PARTIAL_DRAIN	_IO('C', 0x36)
+
 #define SND_COMPR_TRIGGER_DRAIN 7 
+
+#define SND_COMPR_TRIGGER_NEXT_TRACK 8
+#define SND_COMPR_TRIGGER_PARTIAL_DRAIN 9
 
 #define SNDRV_COMPRESS_METADATA_MODE          _IOW('C', 0x99, bool)
 #endif

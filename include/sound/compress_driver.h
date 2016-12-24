@@ -53,6 +53,8 @@ struct snd_compr_stream {
 	struct snd_compr_runtime *runtime;
 	struct snd_compr *device;
 	enum snd_compr_direction direction;
+	bool metadata_set;
+	bool next_track;
 	void *private_data;
 };
 
@@ -84,6 +86,10 @@ struct snd_compr_ops {
 			struct snd_compr_params *params);
 	int (*get_params)(struct snd_compr_stream *stream,
 			struct snd_codec *params);
+	int (*set_metadata)(struct snd_compr_stream *stream,
+			struct snd_compr_metadata *metadata);
+	int (*get_metadata)(struct snd_compr_stream *stream,
+			struct snd_compr_metadata *metadata);
 	int (*trigger)(struct snd_compr_stream *stream, int cmd);
 	int (*pointer)(struct snd_compr_stream *stream,
 			struct snd_compr_tstamp *tstamp);

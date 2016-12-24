@@ -263,6 +263,9 @@ struct fuse_req {
 	
 	struct inode *inode;
 
+	/** Path used for completing d_canonical_path */
+	struct path *canonical_path;
+
 	
 	struct list_head writepages_entry;
 

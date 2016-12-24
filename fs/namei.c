@@ -1426,9 +1426,27 @@ static int do_path_lookup(int dfd, const char *name,
 	return retval;
 }
 
-int kern_path_parent(const char *name, struct nameidata *nd)
+/* does lookup, returns the object with parent locked */
+struct dentry *kern_path_locked(const char *name, struct path *path)
 {
-	return do_path_lookup(AT_FDCWD, name, LOOKUP_PARENT, nd);
+	struct nameidata nd;
+	struct dentry *d;
+	int err = do_path_lookup(AT_FDCWD, name, LOOKUP_PARENT, &nd);
+	if (err)
+		return ERR_PTR(err);
+	if (nd.last_type != LAST_NORM) {
+		path_put(&nd.path);
+		return ERR_PTR(-EINVAL);
+	}
+	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
+	d = lookup_one_len(nd.last.name, nd.path.dentry, nd.last.len);
+	if (IS_ERR(d)) {
+		mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
+		path_put(&nd.path);
+		return d;
+	}
+	*path = nd.path;
+	return d;
 }
 
 int kern_path(const char *name, unsigned int flags, struct path *path)
@@ -2268,7 +2286,7 @@ out:
 static long do_rmdir(int dfd, const char __user *pathname)
 {
 	int error = 0;
-	char * name;
+	char * name = NULL;
 	struct dentry *dentry;
 	struct nameidata nd;
 
@@ -2360,7 +2378,7 @@ int vfs_unlink(struct inode *dir, struct dentry *dentry)
 static long do_unlinkat(int dfd, const char __user *pathname)
 {
 	int error;
-	char *name;
+	char *name = NULL;
 	struct dentry *dentry;
 	struct nameidata nd;
 	struct inode *inode = NULL;
@@ -2712,8 +2730,8 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
 	struct dentry *old_dentry, *new_dentry;
 	struct dentry *trap;
 	struct nameidata oldnd, newnd;
-	char *from;
-	char *to;
+	char *from = NULL;
+	char *to = NULL;
 	int error;
 
 	error = user_path_parent(olddfd, oldname, &oldnd, &from);

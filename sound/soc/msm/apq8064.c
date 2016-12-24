@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -101,6 +101,7 @@ enum {
 };
 
 static int msm_spk_control;
+static int msm_spk9887mute_control = 0;
 static int msm_ext_bottom_spk_pamp;
 static int msm_ext_top_spk_pamp;
 static int msm_slim_0_rx_ch = 1;
@@ -148,6 +149,30 @@ static struct tabla_mbhc_config mbhc_cfg = {
 	.gpio_level_insert = 1,
 };
 
+static inline int param_is_mask(int p)
+{
+	return ((p >= SNDRV_PCM_HW_PARAM_FIRST_MASK) &&
+		(p <= SNDRV_PCM_HW_PARAM_LAST_MASK));
+}
+
+static inline struct snd_mask *param_to_mask(struct snd_pcm_hw_params *p, int n)
+{
+	return &(p->masks[n - SNDRV_PCM_HW_PARAM_FIRST_MASK]);
+}
+
+static void param_set_mask(struct snd_pcm_hw_params *p, int n, unsigned bit)
+{
+	if (bit >= SNDRV_MASK_MAX)
+		return;
+	if (param_is_mask(n)) {
+		struct snd_mask *m = param_to_mask(p, n);
+		m->bits[0] = 0;
+		m->bits[1] = 0;
+		m->bits[bit >> 5] |= (1 << (bit & 31));
+	}
+}
+
+
 static struct mutex cdc_mclk_mutex;
 static struct mutex aux_pcm_mutex;
 
@@ -180,7 +205,7 @@ static int msm8960_mi2s_hw_params(struct snd_pcm_substream *substream,
 	int bit_clk_set = 0;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		bit_clk_set = 12288000/(rate * 2 * 16);
+		bit_clk_set = 18432000/(rate * 2 * 24);
 		clk_set_rate(mi2s_rx_bit_clk, bit_clk_set);
 	}
 	return 1;
@@ -254,7 +279,8 @@ static int msm8960_mi2s_startup(struct snd_pcm_substream *substream)
 		configure_mi2s_rx_gpio();
 		mi2s_rx_osr_clk = clk_get(cpu_dai->dev, "osr_clk");
 		if (mi2s_rx_osr_clk) {
-			clk_set_rate(mi2s_rx_osr_clk, 12288000);
+			
+			clk_set_rate(mi2s_rx_osr_clk, 18432000);
 			clk_prepare_enable(mi2s_rx_osr_clk);
 		}
 		mi2s_rx_bit_clk = clk_get(cpu_dai->dev, "bit_clk");
@@ -673,6 +699,32 @@ static int msm_set_spk(struct snd_kcontrol *kcontrol,
 	msm_ext_control(codec);
 	return 1;
 }
+
+static int msm_get_spk9887mute(struct snd_kcontrol *kcontrol,
+       struct snd_ctl_elem_value *ucontrol) {
+       pr_debug("%s: msm_spk9887_control = %d", __func__, msm_spk9887mute_control);
+       ucontrol->value.integer.value[0] = msm_spk9887mute_control;
+       return 0;
+}
+static int msm_set_spk9887mute(struct snd_kcontrol *kcontrol,
+       struct snd_ctl_elem_value *ucontrol) {
+
+       
+       
+
+       msm_spk9887mute_control = ucontrol->value.integer.value[0];
+       pr_info("@@## %s() %d\n", __func__,msm_spk9887mute_control);
+       if (msm_spk9887mute_control)
+       {
+               msleep(200);
+               set_tfa9887_spkamp(0, 0);
+       }
+       else
+               set_tfa9887_spkamp(1, 0);
+
+       return 1;
+}
+
 static int msm_spkramp_event(struct snd_soc_dapm_widget *w,
 	struct snd_kcontrol *k, int event)
 {
@@ -1048,6 +1100,8 @@ static const struct snd_kcontrol_new tabla_msm_controls[] = {
 		msm_set_hac),
 	SOC_ENUM_EXT("RCV AMP EN", msm_enum[0], msm_get_rcv_amp,
 		msm_set_rcv_amp),
+    SOC_ENUM_EXT("Mute9887 Function", msm_enum[0],msm_get_spk9887mute,
+            msm_set_spk9887mute),
 
 
 };
@@ -1387,7 +1441,31 @@ static int msm_slim_0_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	struct snd_interval *channels = hw_param_interval(params,
 			SNDRV_PCM_HW_PARAM_CHANNELS);
 
+	pr_debug("%s() Fixing the BE DAI format to 24bit\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S24_LE);
+
+	rate->min = rate->max = 48000;
+	channels->min = channels->max = msm_slim_0_rx_ch;
+
+	return 0;
+}
+
+static int msm_slim_0_stub_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
+			struct snd_pcm_hw_params *params)
+{
+	struct snd_interval *rate = hw_param_interval(params,
+	SNDRV_PCM_HW_PARAM_RATE);
+
+	struct snd_interval *channels = hw_param_interval(params,
+			SNDRV_PCM_HW_PARAM_CHANNELS);
+
 	pr_debug("%s()\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S16_LE);
+
 	rate->min = rate->max = 48000;
 	channels->min = channels->max = msm_slim_0_rx_ch;
 
@@ -1420,6 +1498,10 @@ static int msm_slim_3_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			SNDRV_PCM_HW_PARAM_CHANNELS);
 
 	pr_debug("%s()\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S16_LE);
+
 	rate->min = rate->max = 48000;
 	channels->min = channels->max = msm_slim_3_rx_ch;
 
@@ -1455,6 +1537,10 @@ static int msm_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	SNDRV_PCM_HW_PARAM_RATE);
 
 	pr_debug("%s()\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S16_LE);
+
 	rate->min = rate->max = 48000;
 
 	return 0;
@@ -1471,6 +1557,8 @@ static int msm_hdmi_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 
 	pr_debug("%s channels->min %u channels->max %u ()\n", __func__,
 			channels->min, channels->max);
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S16_LE);
 
 	rate->min = rate->max = 48000;
 
@@ -1501,11 +1589,32 @@ static int msm_mi2s_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	struct snd_interval *channels = hw_param_interval(params,
 					SNDRV_PCM_HW_PARAM_CHANNELS);
 
+	pr_debug("%s() Fixing the BE DAI format to 24bit\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S24_LE);
+
 	rate->min = rate->max = 48000;
 	channels->min = channels->max = 1;
 #ifdef CONFIG_AMP_TFA9887L
 	channels->min = channels->max = 2;
 #endif
+
+	return 0;
+}
+
+static int msm_mi2s_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
+			struct snd_pcm_hw_params *params)
+{
+	struct snd_interval *rate = hw_param_interval(params,
+	SNDRV_PCM_HW_PARAM_RATE);
+
+	pr_debug("%s()\n", __func__);
+
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S24_LE);
+
+	rate->min = rate->max = 48000;
 
 	return 0;
 }
@@ -1550,7 +1659,11 @@ static int msm_auxpcm_be_params_fixup(struct snd_soc_pcm_runtime *rtd,
 					SNDRV_PCM_HW_PARAM_CHANNELS);
 
 	
+#ifdef CONFIG_BT_WBS_BRCM
+	rate->min = rate->max = 16000;
+#else
 	rate->min = rate->max = 8000;
+#endif
 	channels->min = channels->max = 1;
 
 	return 0;
@@ -1563,6 +1676,9 @@ static int msm_proxy_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	SNDRV_PCM_HW_PARAM_RATE);
 
 	pr_debug("%s()\n", __func__);
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
+		SNDRV_PCM_FORMAT_S16_LE);
+
 	rate->min = rate->max = 48000;
 
 	return 0;
@@ -2022,7 +2138,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_name     = "msm-stub-codec.1",
 		.codec_dai_name = "msm-stub-tx",
 		.no_pcm = 1,
-		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.be_hw_params_fixup = msm_mi2s_tx_be_hw_params_fixup,
 		.be_id = MSM_BACKEND_DAI_MI2S_TX,
 		.ops = &msm8960_mi2s_be_ops,
 	},
@@ -2085,7 +2201,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_dai_name = "tabla_rx2",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_EXTPROC_RX,
-		.be_hw_params_fixup = msm_slim_0_rx_be_hw_params_fixup,
+		.be_hw_params_fixup = msm_slim_0_stub_rx_be_hw_params_fixup,
 		.init = &msm_stubrx_init,
 		.ops = &msm_be_ops,
 		.ignore_pmdown_time = 1, 
@@ -2177,7 +2293,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_dai_name	= "tabla_tx3",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_EXTPROC_EC_TX,
-		.be_hw_params_fixup = msm_slim_0_rx_be_hw_params_fixup,
+		.be_hw_params_fixup = msm_slim_0_stub_rx_be_hw_params_fixup,
 		.ops = &msm_be_ops,
 	},
 	{
@@ -2278,6 +2394,19 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, 
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA8,
 	},
+	{
+		.name = "Compress Stub",
+		.stream_name = "Compress Stub",
+		.cpu_dai_name	= "MM_STUB",
+		.platform_name  = "msm-pcm-hostless",
+		.dynamic = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST, SND_SOC_DPCM_TRIGGER_POST},
+		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1, 
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+	},
 	
 
 };
@@ -2316,7 +2445,8 @@ static int __init msm_audio_init(void)
 		GPIO_CFG(42, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 	};
 
-	if (!cpu_is_apq8064()) {
+	if (!(cpu_is_apq8064() || cpu_is_apq8064ab()) ||
+		(socinfo_get_id() == 130)) {
 		pr_err("%s: Not the right machine type\n", __func__);
 		return -ENODEV;
 	}
@@ -2370,7 +2500,8 @@ module_init(msm_audio_init);
 
 static void __exit msm_audio_exit(void)
 {
-	if (!cpu_is_apq8064() || (socinfo_get_id() == 130)) {
+	if (!(cpu_is_apq8064() || cpu_is_apq8064ab()) ||
+				 (socinfo_get_id() == 130)) {
 		pr_err("%s: Not the right machine type\n", __func__);
 		return ;
 	}
